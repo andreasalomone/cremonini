@@ -1,8 +1,9 @@
 import { addDays, addYears } from 'date-fns';
 
-import { DEADLINES } from './deadline-constants';
+import { DEADLINES } from '@/constants/Deadlines';
+import type { claimsSchema } from '@/models/Schema';
 
-export type ClaimType = 'TRANSPORT' | 'STOCK' | 'DEPOSIT';
+type ClaimType = typeof claimsSchema.$inferSelect.type;
 
 /**
  * Calculates legal deadlines based on the event date and claim type.

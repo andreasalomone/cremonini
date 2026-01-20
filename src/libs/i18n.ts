@@ -3,7 +3,7 @@ import { getRequestConfig } from 'next-intl/server';
 
 import { AllLocales } from '@/utils/AppConfig';
 
-// NextJS Boilerplate uses Crowdin as the localization software.
+// Uses Crowdin as the localization software.
 // As a developer, you only need to take care of the English (or another default language) version.
 // Other languages are automatically generated and handled by Crowdin.
 

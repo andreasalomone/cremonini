@@ -5,7 +5,6 @@ import { NextIntlClientProvider, useMessages } from 'next-intl';
 import { unstable_setRequestLocale } from 'next-intl/server';
 import { Toaster } from 'sonner';
 
-import { DemoBadge } from '@/components/DemoBadge';
 import { AllLocales } from '@/utils/AppConfig';
 
 export const metadata: Metadata = {
@@ -61,7 +60,6 @@ export default function RootLayout(props: {
         >
           {props.children}
 
-          <DemoBadge />
           <Toaster />
         </NextIntlClientProvider>
       </body>

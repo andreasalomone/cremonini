@@ -3,6 +3,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { count, eq, sql, sum } from 'drizzle-orm';
 
+import { DEADLINES } from '@/constants/Deadlines';
 import { db } from '@/libs/DB';
 import { Env } from '@/libs/Env';
 import { claimsSchema } from '@/models/Schema';
@@ -32,17 +33,25 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     .select({
       total: count(),
       active: count(sql`CASE WHEN ${claimsSchema.status} != 'CLOSED' THEN 1 END`),
-      // Critical logic: reserve <= 7 days OR prescription <= 30 days
+      // Critical logic: using centralized constants (reserve <= 7 days OR prescription <= 30 days)
       critical: count(
         sql`CASE WHEN ${claimsSchema.status} != 'CLOSED' AND (
-          ${claimsSchema.reserveDeadline} <= (CURRENT_DATE + INTERVAL '7 days')::text OR
-          ${claimsSchema.prescriptionDeadline} <= (CURRENT_DATE + INTERVAL '30 days')::text
+          ${claimsSchema.reserveDeadline} <= (CURRENT_DATE + (INTERVAL '1 day' * ${DEADLINES.CRITICAL_RESERVE_THRESHOLD_DAYS}))::text OR
+          ${claimsSchema.prescriptionDeadline} <= (CURRENT_DATE + (INTERVAL '1 day' * ${DEADLINES.CRITICAL_PRESCRIPTION_THRESHOLD_DAYS}))::text
         ) THEN 1 END`,
       ),
-      // Sum estimated value (cast to numeric safely)
+      // Fix: Handle Italian currency format (replace thousands '.' with empty, replace decimal ',' with '.')
       value: sum(
         sql`CASE WHEN ${claimsSchema.status} != 'CLOSED' THEN
-          CAST(NULLIF(REGEXP_REPLACE(${claimsSchema.estimatedValue}, '[^0-9.]', '', 'g'), '') AS NUMERIC)
+          CAST(
+            NULLIF(
+              REGEXP_REPLACE(
+                REPLACE(REPLACE(${claimsSchema.estimatedValue}, '.', ''), ',', '.'),
+                '[^0-9.]', '', 'g'
+              ),
+              ''
+            ) AS NUMERIC
+          )
         ELSE 0 END`,
       ),
     })

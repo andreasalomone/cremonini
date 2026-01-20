@@ -1,5 +1,13 @@
 'use client';
 
+import {
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+} from 'recharts';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 type ClaimsOverviewProps = {
@@ -9,6 +17,11 @@ type ClaimsOverviewProps = {
 
 export const ClaimsOverview = ({ open, total }: ClaimsOverviewProps) => {
   const closed = total - open;
+  const data = [
+    { name: 'Open', value: open, color: '#3b82f6' }, // blue-500
+    { name: 'Closed', value: closed, color: '#e2e8f0' }, // slate-200
+  ];
+
   const openPercentage = total > 0 ? (open / total) * 100 : 0;
 
   return (
@@ -17,7 +30,34 @@ export const ClaimsOverview = ({ open, total }: ClaimsOverviewProps) => {
         <CardTitle className="text-base font-medium">Claims Lifecycle</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        <div className="h-[200px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={80}
+                paddingAngle={5}
+                dataKey="value"
+              >
+                {data.map(entry => (
+                  <Cell key={entry.name} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#fff',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="mt-4 space-y-2">
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
               <div className="size-3 rounded-full bg-blue-500" />
@@ -32,14 +72,6 @@ export const ClaimsOverview = ({ open, total }: ClaimsOverviewProps) => {
               <span className="text-muted-foreground">Closed Claims</span>
             </div>
             <span className="font-bold">{closed}</span>
-          </div>
-
-          {/* Simple Progress Bar */}
-          <div className="relative h-4 w-full overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="absolute left-0 top-0 h-full bg-blue-500 transition-all duration-500"
-              style={{ width: `${openPercentage}%` }}
-            />
           </div>
 
           <div className="pt-2 text-xs text-muted-foreground">

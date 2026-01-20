@@ -30,28 +30,6 @@
     "feature6_title": "Rapports",
     "feature_description": "Gestion séparée pour chaque société du groupe avec supervision centralisée S&A."
   },
-  "Pricing": {
-    "section_subtitle": "Accès",
-    "section_title": "Accès Réservé",
-    "section_description": "L'accès à la plateforme est strictement réservé au personnel autorisé du Groupe Cremonini et S&A.",
-    "button_text": "Demander l'accès"
-  },
-  "PricingPlan": {
-    "free_plan_name": "Standard",
-    "premium_plan_name": "Pro",
-    "enterprise_plan_name": "Entreprise",
-    "free_plan_description": "Accès de base",
-    "premium_plan_description": "Fonctionnalités avancées",
-    "enterprise_plan_description": "Gestion complète",
-    "feature_team_member": "{number} Utilisateurs",
-    "feature_website": "Accès Portail",
-    "feature_storage": "Archive Illimitée",
-    "feature_transfer": "Support Prioritaire",
-    "feature_email_support": "Support Email",
-    "plan_interval_month": "mois",
-    "plan_interval_year": "an",
-    "next_renew_date": "Renouvellement le {date}"
-  },
   "FAQ": {
     "question": "Comment demander un nouveau compte ?",
     "answer": "Contactez l'administration S&A pour demander la création d'un nouvel utilisateur pour votre société."
@@ -82,7 +60,6 @@
     "claims": "Dossiers",
     "todos": "Tâches",
     "members": "Membres",
-    "billing": "Facturation",
     "settings": "Réglages"
   },
   "Dashboard": {
@@ -105,23 +82,6 @@
     "title_bar": "Organisation",
     "title_bar_description": "Gérer les données de l'organisation"
   },
-  "Billing": {
-    "title_bar": "Abonnement",
-    "title_bar_description": "Détails de la licence logicielle",
-    "current_section_title": "Plan Actuel",
-    "current_section_description": "Détails du plan actif",
-    "manage_subscription_button": "Gérer"
-  },
-  "BillingOptions": {
-    "current_plan": "Plan Actuel",
-    "upgrade_plan": "Améliorer"
-  },
-  "CheckoutConfirmation": {
-    "title_bar": "Confirmation",
-    "message_state_title": "Opération réussie",
-    "message_state_description": "L'opération a été complétée avec succès.",
-    "message_state_button": "Retour au Tableau de Bord"
-  },
   "DataTable": {
     "no_results": "Aucun résultat trouvé."
   },
@@ -135,7 +95,7 @@
     "edit": "Modifier",
     "delete": "Supprimer",
     "title_header": "Titre",
-    "message_header": "Détails",
+    "message_header": "Dettagli",
     "created_at_header": "Créé le"
   },
   "AddTodo": {

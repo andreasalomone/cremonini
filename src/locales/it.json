@@ -29,28 +29,6 @@
     "feature6_title": "Report",
     "feature_description": "Gestione separata per ogni azienda del gruppo con supervisione centralizzata S&A."
   },
-  "Pricing": {
-    "section_subtitle": "Accesso",
-    "section_title": "Accesso Riservato",
-    "section_description": "L'accesso alla piattaforma è strettamente riservato al personale autorizzato del Gruppo Cremonini e S&A.",
-    "button_text": "Richiedi Accesso"
-  },
-  "PricingPlan": {
-    "free_plan_name": "Standard",
-    "premium_plan_name": "Pro",
-    "enterprise_plan_name": "Enterprise",
-    "free_plan_description": "Accesso base",
-    "premium_plan_description": "Funzionalità avanzate",
-    "enterprise_plan_description": "Gestione completa",
-    "feature_team_member": "{number} Utenti",
-    "feature_website": "Accesso Portale",
-    "feature_storage": "Archivio Illimitato",
-    "feature_transfer": "Supporto Prioritario",
-    "feature_email_support": "Supporto Email",
-    "plan_interval_month": "mese",
-    "plan_interval_year": "anno",
-    "next_renew_date": "Rinnovo il {date}"
-  },
   "FAQ": {
     "question": "Come posso richiedere un nuovo account?",
     "answer": "Contatta l'amministrazione S&A per richiedere la creazione di un nuovo utente per la tua azienda."
@@ -81,7 +59,6 @@
     "claims": "Sinistri",
     "todos": "Attività",
     "members": "Utenti",
-    "billing": "Licenza",
     "settings": "Impostazioni"
   },
   "Dashboard": {
@@ -103,23 +80,6 @@
   "OrganizationProfile": {
     "title_bar": "Azienda",
     "title_bar_description": "Gestione dati aziendali"
-  },
-  "Billing": {
-    "title_bar": "Abbonamento",
-    "title_bar_description": "Dettagli licenza software",
-    "current_section_title": "Piano Attuale",
-    "current_section_description": "Dettagli del piano attivo",
-    "manage_subscription_button": "Gestisci"
-  },
-  "BillingOptions": {
-    "current_plan": "Piano Attuale",
-    "upgrade_plan": "Upgrade"
-  },
-  "CheckoutConfirmation": {
-    "title_bar": "Conferma",
-    "message_state_title": "Operazione completata",
-    "message_state_description": "L'operazione è stata completata con successo.",
-    "message_state_button": "Torna alla Dashboard"
   },
   "DataTable": {
     "no_results": "Nessun risultato trovato."

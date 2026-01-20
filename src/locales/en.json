@@ -30,28 +30,6 @@
     "feature6_title": "Reports",
     "feature_description": "Separate management for each group company with centralized S&A supervision."
   },
-  "Pricing": {
-    "section_subtitle": "Access",
-    "section_title": "Restricted Access",
-    "section_description": "Access to the platform is strictly reserved for authorized personnel of the Cremonini Group and S&A.",
-    "button_text": "Request Access"
-  },
-  "PricingPlan": {
-    "free_plan_name": "Standard",
-    "premium_plan_name": "Pro",
-    "enterprise_plan_name": "Enterprise",
-    "free_plan_description": "Basic access",
-    "premium_plan_description": "Advanced features",
-    "enterprise_plan_description": "Full management",
-    "feature_team_member": "{number} Users",
-    "feature_website": "Portal Access",
-    "feature_storage": "Unlimited Archive",
-    "feature_transfer": "Priority Support",
-    "feature_email_support": "Email Support",
-    "plan_interval_month": "month",
-    "plan_interval_year": "year",
-    "next_renew_date": "Renews on {date}"
-  },
   "FAQ": {
     "question": "How can I request a new account?",
     "answer": "Contact S&A administration to request a new user creation for your company."
@@ -82,7 +60,6 @@
     "claims": "Claims",
     "todos": "Todos",
     "members": "Members",
-    "billing": "Billing",
     "settings": "Settings"
   },
   "Dashboard": {
@@ -104,23 +81,6 @@
   "OrganizationProfile": {
     "title_bar": "Organization",
     "title_bar_description": "Manage organization data"
-  },
-  "Billing": {
-    "title_bar": "Subscription",
-    "title_bar_description": "Software license details",
-    "current_section_title": "Current Plan",
-    "current_section_description": "Active plan details",
-    "manage_subscription_button": "Manage"
-  },
-  "BillingOptions": {
-    "current_plan": "Current Plan",
-    "upgrade_plan": "Upgrade"
-  },
-  "CheckoutConfirmation": {
-    "title_bar": "Confirmation",
-    "message_state_title": "Operation successful",
-    "message_state_description": "The operation was completed successfully.",
-    "message_state_button": "Back to Dashboard"
   },
   "DataTable": {
     "no_results": "No results found."
