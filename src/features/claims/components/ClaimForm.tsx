@@ -12,6 +12,7 @@ import { Calendar } from '@/components/ui/calendar';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -40,6 +41,9 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
     resolver: zodResolver(CreateClaimSchema),
     defaultValues: {
       type: 'TRANSPORT',
+      location: '',
+      ddtCmrNumber: '',
+      hasThirdPartyResponsible: false,
       carrierName: '',
       estimatedValue: '',
       description: '',
@@ -58,10 +62,8 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
       if (onSuccess) {
         onSuccess();
       }
-      // Optional: Toast success
     } catch (error) {
       console.error(error);
-      // Optional: Toast error
     } finally {
       setIsSubmitting(false);
     }
@@ -77,17 +79,17 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
           name="type"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Type</FormLabel>
+              <FormLabel>Tipologia *</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select claim type" />
+                    <SelectValue placeholder="Seleziona tipologia" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="TRANSPORT">Transport</SelectItem>
-                  <SelectItem value="STOCK">Stock</SelectItem>
-                  <SelectItem value="DEPOSIT">Deposit</SelectItem>
+                  <SelectItem value="TRANSPORT">Trasporto</SelectItem>
+                  <SelectItem value="STOCK">Stock in transit</SelectItem>
+                  <SelectItem value="DEPOSIT">Deposito / giacenza</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -101,7 +103,7 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
           name="eventDate"
           render={({ field }) => (
             <FormItem className="flex flex-col">
-              <FormLabel>Event Date</FormLabel>
+              <FormLabel>Data sinistro *</FormLabel>
               <Popover>
                 <PopoverTrigger asChild>
                   <FormControl>
@@ -117,7 +119,7 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
                             format(field.value, 'PPP')
                           )
                         : (
-                            <span>Pick a date</span>
+                            <span>Seleziona data</span>
                           )}
                       <CalendarIcon className="ml-auto size-4 opacity-50" />
                     </Button>
@@ -153,17 +155,71 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
           )}
         />
 
+        {/* Location - NEW REQUIRED FIELD */}
+        <FormField
+          control={form.control}
+          name="location"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Luogo evento *</FormLabel>
+              <FormControl>
+                <Input placeholder="es. Milano, Autostrada A1 km 123..." {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* DDT/CMR Number - NEW FIELD */}
+        <FormField
+          control={form.control}
+          name="ddtCmrNumber"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Numero DDT / CMR</FormLabel>
+              <FormControl>
+                <Input placeholder="es. DDT-2026-001234" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         {/* Carrier Name */}
         <FormField
           control={form.control}
           name="carrierName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Carrier Name</FormLabel>
+              <FormLabel>Vettore / Depositario</FormLabel>
               <FormControl>
-                <Input placeholder="DHL, FedEx..." {...field} />
+                <Input placeholder="DHL, FedEx, Bartolini..." {...field} />
               </FormControl>
               <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Has Third Party Responsible - NEW FIELD */}
+        <FormField
+          control={form.control}
+          name="hasThirdPartyResponsible"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+              <FormControl>
+                <input
+                  type="checkbox"
+                  checked={field.value}
+                  onChange={field.onChange}
+                  className="size-4 rounded border-gray-300"
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>Presenza terzi responsabili</FormLabel>
+                <FormDescription>
+                  Spuntare se sono presenti terzi potenzialmente responsabili del danno
+                </FormDescription>
+              </div>
             </FormItem>
           )}
         />
@@ -174,9 +230,9 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
           name="estimatedValue"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Estimated Value (€)</FormLabel>
+              <FormLabel>Valore stimato del danno (€)</FormLabel>
               <FormControl>
-                <Input placeholder="1000.00" {...field} />
+                <Input placeholder="1.000,00" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -189,10 +245,10 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>Descrizione dell'evento</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Describe the damage..."
+                  placeholder="Descrivi la dinamica del sinistro..."
                   className="resize-none"
                   {...field}
                 />
@@ -208,7 +264,7 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
           name="documentUrl"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Supporting Document (PDF/Image)</FormLabel>
+              <FormLabel>Documento di supporto (PDF/Immagine)</FormLabel>
               <FormControl>
                 <FileUploader
                   endpoint="pdfUploader"
@@ -225,7 +281,7 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
               </FormControl>
               {field.value && (
                 <div className="text-sm text-green-600">
-                  File uploaded successfully!
+                  ✓ File caricato con successo
                 </div>
               )}
               <FormMessage />
@@ -233,9 +289,9 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
           )}
         />
 
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting} className="w-full">
           {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-          Create Claim
+          Crea Sinistro
         </Button>
       </form>
     </Form>

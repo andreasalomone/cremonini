@@ -12,18 +12,11 @@ import {
 } from '@/components/ui/select';
 import { updateClaimStatus } from '@/features/claims/actions/claims.actions';
 import type { ClaimStatus } from '@/features/claims/constants';
+import { CLAIM_STATUS_OPTIONS } from '@/features/claims/constants';
 
 type ClaimStatusSelectProps = {
   claimId: string;
-  currentStatus: string; // Using string to be loose, but ideally matches ClaimStatus
-};
-
-// Italian labels for the status options
-const STATUS_LABELS: Record<ClaimStatus, string> = {
-  OPEN: 'Aperto',
-  DOCS_COLLECTION: 'Documentazione in raccolta',
-  NEGOTIATION: 'Negoziazione',
-  CLOSED: 'Chiuso',
+  currentStatus: string;
 };
 
 export const ClaimStatusSelect = ({
@@ -38,12 +31,12 @@ export const ClaimStatusSelect = ({
         const result = await updateClaimStatus(claimId, newStatus);
 
         if (result.success) {
-          toast.success('Status updated successfully');
+          toast.success('Stato aggiornato');
         } else {
-          toast.error(result.error || 'Failed to update status');
+          toast.error(result.error || 'Errore durante l\'aggiornamento');
         }
       } catch {
-        toast.error('An unexpected error occurred');
+        toast.error('Errore imprevisto');
       }
     });
   };
@@ -54,11 +47,11 @@ export const ClaimStatusSelect = ({
       onValueChange={handleStatusChange}
       disabled={isPending}
     >
-      <SelectTrigger className="w-[180px]">
-        <SelectValue placeholder="Select status" />
+      <SelectTrigger className="w-[220px]">
+        <SelectValue placeholder="Seleziona stato" />
       </SelectTrigger>
       <SelectContent>
-        {Object.entries(STATUS_LABELS).map(([value, label]) => (
+        {CLAIM_STATUS_OPTIONS.map(({ value, label }) => (
           <SelectItem key={value} value={value}>
             {label}
           </SelectItem>

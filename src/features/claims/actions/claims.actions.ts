@@ -15,6 +15,9 @@ import type { ClaimStatus } from '../constants';
 export type CreateClaimInput = {
   type: 'TRANSPORT' | 'STOCK' | 'DEPOSIT';
   eventDate: Date;
+  location: string;
+  ddtCmrNumber?: string;
+  hasThirdPartyResponsible?: boolean;
   carrierName?: string;
   estimatedValue?: string;
   description?: string;
@@ -74,6 +77,9 @@ export async function createClaim(data: CreateClaimInput) {
     status: 'OPEN',
     type: data.type,
     eventDate: formatDate(eventDate),
+    location: data.location,
+    ddtCmrNumber: data.ddtCmrNumber,
+    hasThirdPartyResponsible: data.hasThirdPartyResponsible ?? false,
     carrierName: data.carrierName,
     estimatedValue: data.estimatedValue,
     description: data.description,
