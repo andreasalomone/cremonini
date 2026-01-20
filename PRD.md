@@ -153,7 +153,7 @@ The system enforces the following flow, mappable to S&A's custom states:
 ### 6.1 Landing Page Pivot
 *   **Minimalist Core:** The landing page must be reduced to its absolute essentials.
 *   **UVP (Unique Value Proposition):** A powerful, single-sentence statement defining the platform (e.g., *"Gestione Sinistri Professionale per il Gruppo Cremonini: Monitoraggio, Conformità e Risultati"*).
-*   **Action Driven:** Primary focus on "Socio Accedi" (Sign In) and "Inizia" (Sign Up) with Cremonini corporate styling.
+*   **Action Driven:** Primary focus on "Accedi" (Sign In) and "Inizia" (Sign Up) with Cremonini corporate styling.
 *   **Zero Boilerplate:** Remove all placeholder text, generic SaaS illustrations, and "Next.js SaaS Boilerplate" branding (credits/links).
 
 ### 6.2 Application Interface Cleanup

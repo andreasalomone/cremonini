@@ -24,21 +24,22 @@ export async function GET(req: NextRequest) {
     const threeDaysFromNow = addDays(now, 3);
     const thirtyDaysFromNow = addDays(now, 30);
 
+    const formatDate = (d: Date): string => d.toISOString().split('T')[0]!;
+
     // 2. Query for expiring claims (Sweep Logic)
     // - Reserve deadline is <= 3 days away AND not notified
     // - Prescription deadline is <= 30 days away AND not notified
-    // Using OR to fetch both types in one query
     const expiringClaims = await db
       .select()
       .from(claimsSchema)
       .where(
         or(
           and(
-            lte(claimsSchema.reserveDeadline, threeDaysFromNow.toISOString()),
+            lte(claimsSchema.reserveDeadline, formatDate(threeDaysFromNow)),
             eq(claimsSchema.reserveNotificationSent, false),
           ),
           and(
-            lte(claimsSchema.prescriptionDeadline, thirtyDaysFromNow.toISOString()),
+            lte(claimsSchema.prescriptionDeadline, formatDate(thirtyDaysFromNow)),
             eq(claimsSchema.prescriptionNotificationSent, false),
           ),
         ),

@@ -5,11 +5,7 @@
   },
   "Navbar": {
     "sign_in": "Sign In",
-    "sign_up": "Sign Up",
-    "product": "Platform",
-    "docs": "Docs",
-    "blog": "News",
-    "community": "Support",
+    "sign_up": "Get Started",
     "company": "Cremonini Group"
   },
   "Hero": {
@@ -66,14 +62,9 @@
     "button_text": "Contact Support"
   },
   "Footer": {
-    "product": "Platform",
-    "docs": "Docs",
-    "blog": "News",
-    "community": "Support",
     "company": "Cremonini Group",
     "terms_of_service": "Terms of Service",
-    "privacy_policy": "Privacy Policy",
-    "designed_by": "Designed by <author></author>."
+    "privacy_policy": "Privacy Policy"
   },
   "ProtectFallback": {
     "not_enough_permission": "You do not have permission to perform this action"

@@ -1,6 +1,7 @@
 import { getClaims } from '@/features/claims/actions/claims.actions';
 import { ClaimsTable } from '@/features/claims/components/ClaimsTable';
 import { getDashboardStats } from '@/features/dashboard/actions/dashboard.actions';
+import { ClaimsOverview } from '@/features/dashboard/components/ClaimsOverview';
 import { StatsGrid } from '@/features/dashboard/components/StatsGrid';
 
 export default async function DashboardPage() {
@@ -14,7 +15,10 @@ export default async function DashboardPage() {
         <p className="text-muted-foreground">Monitor real-time claim metrics and deadlines.</p>
       </div>
 
-      <StatsGrid {...stats} />
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
+        <StatsGrid {...stats} />
+        <ClaimsOverview open={stats.activeClaims} total={stats.totalClaims} />
+      </div>
 
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Latest Claims</h2>

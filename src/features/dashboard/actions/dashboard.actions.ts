@@ -1,7 +1,7 @@
 'use server';
 
 import { auth } from '@clerk/nextjs/server';
-import { eq } from 'drizzle-orm';
+import { count, eq, sql, sum } from 'drizzle-orm';
 
 import { db } from '@/libs/DB';
 import { Env } from '@/libs/Env';
@@ -27,56 +27,34 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   // God Mode vs Tenant logic
   const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
 
-  const claims = isSuperAdmin
-    ? await db.select().from(claimsSchema)
-    : orgId
-      ? await db.select().from(claimsSchema).where(eq(claimsSchema.orgId, orgId))
-      : [];
+  // Optimized SQL aggregates to avoid fetching all rows into memory
+  const statsResult = await db
+    .select({
+      total: count(),
+      active: count(sql`CASE WHEN ${claimsSchema.status} != 'CLOSED' THEN 1 END`),
+      // Critical logic: reserve <= 7 days OR prescription <= 30 days
+      critical: count(
+        sql`CASE WHEN ${claimsSchema.status} != 'CLOSED' AND (
+          ${claimsSchema.reserveDeadline} <= (CURRENT_DATE + INTERVAL '7 days')::text OR
+          ${claimsSchema.prescriptionDeadline} <= (CURRENT_DATE + INTERVAL '30 days')::text
+        ) THEN 1 END`,
+      ),
+      // Sum estimated value (cast to numeric safely)
+      value: sum(
+        sql`CASE WHEN ${claimsSchema.status} != 'CLOSED' THEN
+          CAST(NULLIF(REGEXP_REPLACE(${claimsSchema.estimatedValue}, '[^0-9.]', '', 'g'), '') AS NUMERIC)
+        ELSE 0 END`,
+      ),
+    })
+    .from(claimsSchema)
+    .where(isSuperAdmin ? undefined : eq(claimsSchema.orgId, orgId!));
 
-  const now = new Date();
-  const sevenDaysFromNow = new Date();
-  sevenDaysFromNow.setDate(now.getDate() + 7);
-
-  const thirtyDaysFromNow = new Date();
-  thirtyDaysFromNow.setDate(now.getDate() + 30);
-
-  let totalClaims = 0;
-  let activeClaims = 0;
-  let criticalClaims = 0;
-  let totalValue = 0;
-
-  claims.forEach((claim) => {
-    totalClaims++;
-
-    if (claim.status !== 'CLOSED') {
-      activeClaims++;
-
-      // Calculate totalValue for open claims
-      if (claim.estimatedValue) {
-        // Handle numeric conversion safely
-        const val = Number.parseFloat(claim.estimatedValue.replace(/[^0-9.]/g, ''));
-        if (!Number.isNaN(val)) {
-          totalValue += val;
-        }
-      }
-
-      // Critical logic
-      const reserveDate = claim.reserveDeadline ? new Date(claim.reserveDeadline) : null;
-      const prescriptionDate = claim.prescriptionDeadline ? new Date(claim.prescriptionDeadline) : null;
-
-      const isReserveCritical = reserveDate && reserveDate <= sevenDaysFromNow;
-      const isPrescriptionCritical = prescriptionDate && prescriptionDate <= thirtyDaysFromNow;
-
-      if (isReserveCritical || isPrescriptionCritical) {
-        criticalClaims++;
-      }
-    }
-  });
+  const stats = statsResult[0];
 
   return {
-    totalClaims,
-    activeClaims,
-    criticalClaims,
-    totalValue,
+    totalClaims: Number(stats?.total ?? 0),
+    activeClaims: Number(stats?.active ?? 0),
+    criticalClaims: Number(stats?.critical ?? 0),
+    totalValue: Number(stats?.value ?? 0),
   };
 }

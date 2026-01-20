@@ -5,19 +5,14 @@
   },
   "Navbar": {
     "sign_in": "Accedi",
-    "sign_up": "Registrati",
-    "product": "Piattaforma",
-    "docs": "Guida",
-    "blog": "Novità",
-    "community": "Supporto",
+    "sign_up": "Inizia",
     "company": "Gruppo Cremonini"
   },
   "Hero": {
-    "follow_twitter": "Cremonini Group",
-    "title": "Gestione Centralizzata <important>Sinistri</important> e Scadenze Legali.",
-    "description": "Piattaforma sicura per la segnalazione, il monitoraggio e la gestione dei sinistri per tutte le aziende del Gruppo Cremonini.",
-    "primary_button": "Dashboard Sinistri",
-    "secondary_button": "Documentazione"
+    "title": "S&A x Gruppo Cremonini Claims Platform",
+    "description": "Gestione sinistri in franchigia aggregata e recuperi per Gruppo Cremonini.",
+    "primary_button": "Accedi",
+    "secondary_button": "Registrati"
   },
   "Sponsors": {
     "title": "Powered by"
@@ -66,14 +61,9 @@
     "button_text": "Contatta Supporto"
   },
   "Footer": {
-    "product": "Piattaforma",
-    "docs": "Guida",
-    "blog": "Novità",
-    "community": "Supporto",
     "company": "Gruppo Cremonini",
     "terms_of_service": "Termini di Servizio",
-    "privacy_policy": "Privacy Policy",
-    "designed_by": "Sviluppato da <author></author>."
+    "privacy_policy": "Privacy Policy"
   },
   "ProtectFallback": {
     "not_enough_permission": "Non hai i permessi per eseguire questa azione"
