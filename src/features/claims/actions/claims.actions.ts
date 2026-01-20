@@ -30,6 +30,18 @@ const formatDateNullable = (d: Date | null): string | null =>
   d ? formatDate(d) : null;
 
 /**
+ * Sanitizes Italian currency strings (e.g. "1.234,56") into
+ * standard decimal strings (e.g. "1234.56") for the DB.
+ */
+const sanitizeCurrency = (val?: string): string | null => {
+  if (!val) {
+    return null;
+  }
+  // Remove thousands separator (.) and replace decimal separator (,) with (.)
+  return val.replace(/\./g, '').replace(',', '.');
+};
+
+/**
  * "God Mode" Data Access
  * S&A Admin sees ALL (limited to 100 for scalability).
  * Company Rep sees ONLY their org.
@@ -75,7 +87,7 @@ export async function createClaim(data: CreateClaimInput) {
     ddtCmrNumber: data.ddtCmrNumber,
     hasThirdPartyResponsible: data.hasThirdPartyResponsible ?? false,
     carrierName: data.carrierName,
-    estimatedValue: data.estimatedValue,
+    estimatedValue: sanitizeCurrency(data.estimatedValue),
     description: data.description,
     documentUrl: data.documentUrl,
     reserveDeadline: formatDateNullable(reserveDeadline),
@@ -196,10 +208,10 @@ export async function updateClaimEconomics(claimId: string, data: UpdateClaimEco
     await db
       .update(claimsSchema)
       .set({
-        estimatedValue: data.estimatedValue,
-        verifiedDamage: data.verifiedDamage,
-        claimedAmount: data.claimedAmount,
-        recoveredAmount: data.recoveredAmount,
+        estimatedValue: sanitizeCurrency(data.estimatedValue),
+        verifiedDamage: sanitizeCurrency(data.verifiedDamage),
+        claimedAmount: sanitizeCurrency(data.claimedAmount),
+        recoveredAmount: sanitizeCurrency(data.recoveredAmount),
         updatedAt: new Date(),
       })
       .where(eq(claimsSchema.id, claimId));

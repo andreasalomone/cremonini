@@ -4,7 +4,9 @@ import { auth } from '@clerk/nextjs/server';
 import { count, eq, sql, sum } from 'drizzle-orm';
 
 import { DEADLINES } from '@/constants/Deadlines';
+import { ECONOMICS } from '@/constants/Economics';
 import { db } from '@/libs/DB';
+import { parseCurrencySql } from '@/libs/DBUtils';
 import { Env } from '@/libs/Env';
 import { claimsSchema } from '@/models/Schema';
 
@@ -15,20 +17,8 @@ export type DashboardStats = {
   totalValue: number;
   totalRecovered: number;
   recoveryRate: number;
+  aggregateDeductibleResidual: number;
 };
-
-// Helper to parse Italian currency format to numeric
-const parseCurrencySql = (column: unknown) => sql`
-  CAST(
-    NULLIF(
-      REGEXP_REPLACE(
-        REPLACE(REPLACE(${column}, '.', ''), ',', '.'),
-        '[^0-9.]', '', 'g'
-      ),
-      ''
-    ) AS NUMERIC
-  )
-`;
 
 /**
  * Computes dashboard statistics based on user role (Admin vs Tenant).
@@ -61,6 +51,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       ),
       // Total recovered amount
       recovered: sum(parseCurrencySql(claimsSchema.recoveredAmount)),
+      // Total verified damage for aggregate deductible
+      verified: sum(parseCurrencySql(claimsSchema.verifiedDamage)),
       // Total claimed for recovery rate calculation
       claimed: sum(parseCurrencySql(claimsSchema.claimedAmount)),
     })
@@ -71,6 +63,13 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
   const totalRecovered = Number(stats?.recovered ?? 0);
   const totalClaimed = Number(stats?.claimed ?? 0);
+  const totalVerifiedDamage = Number(stats?.verified ?? 0);
+
+  // --- US 6.2: AGGREGATE DEDUCTIBLE LOGIC ---
+  // The aggregate deductible is used by verified damages and "refilled" by recoveries.
+  // Formula: LIMIT - (VERIFIED - RECOVERED)
+  const usedDeductible = Math.max(0, totalVerifiedDamage - totalRecovered);
+  const residualDeductible = Math.max(0, ECONOMICS.ANNUAL_AGGREGATE_DEDUCTIBLE - usedDeductible);
 
   return {
     totalClaims: Number(stats?.total ?? 0),
@@ -79,5 +78,6 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     totalValue: Number(stats?.value ?? 0),
     totalRecovered,
     recoveryRate: totalClaimed > 0 ? totalRecovered / totalClaimed : 0,
+    aggregateDeductibleResidual: residualDeductible,
   };
 }

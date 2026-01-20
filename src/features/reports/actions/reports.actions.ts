@@ -4,33 +4,9 @@ import { auth } from '@clerk/nextjs/server';
 import { and, count, eq, gte, lte, sql, sum } from 'drizzle-orm';
 
 import { db } from '@/libs/DB';
+import { parseCurrencySql } from '@/libs/DBUtils';
 import { Env } from '@/libs/Env';
 import { claimsSchema } from '@/models/Schema';
-
-// Helper to parse Italian currency format to numeric
-const parseCurrency = sql`
-  CAST(
-    NULLIF(
-      REGEXP_REPLACE(
-        REPLACE(REPLACE(estimated_value, '.', ''), ',', '.'),
-        '[^0-9.]', '', 'g'
-      ),
-      ''
-    ) AS NUMERIC
-  )
-`;
-
-const parseRecovered = sql`
-  CAST(
-    NULLIF(
-      REGEXP_REPLACE(
-        REPLACE(REPLACE(recovered_amount, '.', ''), ',', '.'),
-        '[^0-9.]', '', 'g'
-      ),
-      ''
-    ) AS NUMERIC
-  )
-`;
 
 export type SocietyReport = {
   orgId: string;
@@ -79,8 +55,8 @@ export async function getReportBySociety(
     .select({
       orgId: claimsSchema.orgId,
       total: count(),
-      estimated: sum(parseCurrency),
-      recovered: sum(parseRecovered),
+      estimated: sum(parseCurrencySql(claimsSchema.estimatedValue)),
+      recovered: sum(parseCurrencySql(claimsSchema.recoveredAmount)),
     })
     .from(claimsSchema)
     .where(conditions.length > 0 ? and(...conditions) : undefined)
@@ -133,8 +109,8 @@ export async function getReportByPeriod(
     .select({
       month: sql<string>`TO_CHAR(${claimsSchema.createdAt}, 'YYYY-MM')`,
       total: count(),
-      estimated: sum(parseCurrency),
-      recovered: sum(parseRecovered),
+      estimated: sum(parseCurrencySql(claimsSchema.estimatedValue)),
+      recovered: sum(parseCurrencySql(claimsSchema.recoveredAmount)),
     })
     .from(claimsSchema)
     .where(and(...conditions))
@@ -177,8 +153,8 @@ export async function getRecoveryReport(startDate?: string, endDate?: string) {
     .select({
       status: claimsSchema.status,
       total: count(),
-      estimated: sum(parseCurrency),
-      recovered: sum(parseRecovered),
+      estimated: sum(parseCurrencySql(claimsSchema.estimatedValue)),
+      recovered: sum(parseCurrencySql(claimsSchema.recoveredAmount)),
     })
     .from(claimsSchema)
     .where(conditions.length > 0 ? and(...conditions) : undefined)

@@ -20,18 +20,10 @@ export default async function ReportsPage() {
 
   const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
 
-  if (!isSuperAdmin) {
-    return (
-      <div className="container mx-auto py-10">
-        <h1 className="text-3xl font-bold">Accesso Negato</h1>
-        <p className="mt-4">Questa pagina è riservata agli amministratori S&A.</p>
-      </div>
-    );
-  }
-
+  // Companies can see their own reports, S&A sees all
   const [societyReport, recoveryReport] = await Promise.all([
-    getReportBySociety(),
-    getRecoveryReport(),
+    isSuperAdmin ? getReportBySociety() : [], // Societies table only for S&A
+    getRecoveryReport(), // Recovery stats filtered by orgId in the action
   ]);
 
   return (
@@ -45,10 +37,12 @@ export default async function ReportsPage() {
 
       <RecoveryStatsCards data={recoveryReport} />
 
-      <div className="rounded-lg border bg-card p-6 shadow-sm">
-        <h2 className="mb-6 text-xl font-semibold">Performance per Società</h2>
-        <SocietyReportTable data={societyReport} />
-      </div>
+      {isSuperAdmin && (
+        <div className="rounded-lg border bg-card p-6 shadow-sm">
+          <h2 className="mb-6 text-xl font-semibold">Performance per Società</h2>
+          <SocietyReportTable data={societyReport} />
+        </div>
+      )}
     </div>
   );
 }

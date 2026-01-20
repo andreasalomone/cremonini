@@ -1,13 +1,17 @@
-import { AlertCircle, Archive, ClipboardList, TrendingUp } from 'lucide-react';
+import { AlertCircle, Archive, Banknote, ClipboardList, ShieldAlert, TrendingUp } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import React from 'react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ECONOMICS } from '@/constants/Economics';
 
 type StatsGridProps = {
   totalClaims: number;
   activeClaims: number;
   criticalClaims: number;
   totalValue: number;
+  totalRecovered: number;
+  aggregateDeductibleResidual: number;
 };
 
 export const StatsGrid = ({
@@ -15,32 +19,50 @@ export const StatsGrid = ({
   activeClaims,
   criticalClaims,
   totalValue,
+  totalRecovered,
+  aggregateDeductibleResidual,
 }: StatsGridProps) => {
+  const t = useTranslations('DashboardStats');
+  const isDeductibleLow = aggregateDeductibleResidual < (ECONOMICS.ANNUAL_AGGREGATE_DEDUCTIBLE * ECONOMICS.DEDUCTIBLE_LOW_THRESHOLD);
+
   const stats = [
     {
-      title: 'Total Claims',
+      title: t('total_claims'),
       value: totalClaims,
       icon: Archive,
-      description: 'Total claims submitted',
+      description: t('total_claims_desc'),
     },
     {
-      title: 'Active Claims',
+      title: t('active_claims'),
       value: activeClaims,
       icon: ClipboardList,
-      description: 'Claims currently open',
+      description: t('active_claims_desc'),
     },
     {
-      title: 'Critical Claims',
+      title: t('critical_claims'),
       value: criticalClaims,
       icon: AlertCircle,
-      description: 'Near-deadline or expired',
+      description: t('critical_claims_desc'),
       critical: criticalClaims > 0,
     },
     {
-      title: 'Total Value',
+      title: t('total_value'),
       value: `€${totalValue.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`,
       icon: TrendingUp,
-      description: 'Estimated value of open claims',
+      description: t('total_value_desc'),
+    },
+    {
+      title: t('total_recovered'),
+      value: `€${totalRecovered.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`,
+      icon: Banknote,
+      description: t('total_recovered_desc'),
+    },
+    {
+      title: t('residual_deductible'),
+      value: `€${aggregateDeductibleResidual.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`,
+      icon: ShieldAlert,
+      description: t('residual_deductible_desc'),
+      critical: isDeductibleLow,
     },
   ];
 

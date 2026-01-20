@@ -2,6 +2,7 @@ import { relations } from 'drizzle-orm';
 import {
   boolean,
   date,
+  decimal,
   index,
   pgEnum,
   pgTable,
@@ -87,10 +88,10 @@ export const claimsSchema = pgTable('claims', {
   documentUrl: text('document_url'), // Legacy single doc (kept for backwards compat)
 
   // Economic fields
-  estimatedValue: text('estimated_value'), // Danno stimato
-  verifiedDamage: text('verified_damage'), // Danno accertato
-  claimedAmount: text('claimed_amount'), // Importo reclamato
-  recoveredAmount: text('recovered_amount'), // Importo recuperato
+  estimatedValue: decimal('estimated_value', { precision: 15, scale: 2 }), // Danno stimato
+  verifiedDamage: decimal('verified_damage', { precision: 15, scale: 2 }), // Danno accertato
+  claimedAmount: decimal('claimed_amount', { precision: 15, scale: 2 }), // Importo reclamato
+  recoveredAmount: decimal('recovered_amount', { precision: 15, scale: 2 }), // Importo recuperato
 
   // Deadlines
   reserveDeadline: date('reserve_deadline'),

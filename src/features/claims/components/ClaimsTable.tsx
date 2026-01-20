@@ -10,21 +10,10 @@ import {
 } from '@/components/ui/table';
 import type { PoaStatus } from '@/features/procura/actions/procura.actions';
 import { PoaStatusBadge } from '@/features/procura/components/PoaStatusBadge';
+import type { Claim } from '@/models/Schema';
 
 import { ClaimStatusSelect } from './ClaimStatusSelect';
 import { DeadlineBadge } from './DeadlineBadge';
-
-// Minimal type definition based on DB schema
-type Claim = {
-  id: string;
-  status: string;
-  type: string;
-  eventDate: Date | string;
-  carrierName: string | null;
-  estimatedValue: string | null;
-  orgId: string;
-  reserveDeadline: string | null;
-};
 
 type ClaimsTableProps = {
   claims: Claim[];
@@ -71,7 +60,11 @@ export const ClaimsTable = ({
                     <TableCell>{new Date(claim.eventDate).toLocaleDateString('it-IT')}</TableCell>
                     <TableCell>{claim.type}</TableCell>
                     <TableCell>{claim.carrierName || '-'}</TableCell>
-                    <TableCell>{claim.estimatedValue || '-'}</TableCell>
+                    <TableCell>
+                      {claim.estimatedValue
+                        ? `€${Number(claim.estimatedValue).toLocaleString('it-IT', { minimumFractionDigits: 2 })}`
+                        : '-'}
+                    </TableCell>
                     <TableCell>
                       <DeadlineBadge date={claim.reserveDeadline} />
                     </TableCell>

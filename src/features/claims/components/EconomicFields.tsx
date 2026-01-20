@@ -27,6 +27,16 @@ const EconomicFieldsSchema = z.object({
 
 type EconomicFieldsValues = z.infer<typeof EconomicFieldsSchema>;
 
+const formatCurrency = (val?: string | number | null): string => {
+  if (val === undefined || val === null || val === '') {
+    return '';
+  }
+  return Number(val).toLocaleString('it-IT', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
 type EconomicFieldsProps = {
   claimId: string;
   initialValues?: Partial<EconomicFieldsValues>;
@@ -43,10 +53,10 @@ export const EconomicFields = ({
   const form = useForm<EconomicFieldsValues>({
     resolver: zodResolver(EconomicFieldsSchema),
     defaultValues: {
-      estimatedValue: initialValues?.estimatedValue ?? '',
-      verifiedDamage: initialValues?.verifiedDamage ?? '',
-      claimedAmount: initialValues?.claimedAmount ?? '',
-      recoveredAmount: initialValues?.recoveredAmount ?? '',
+      estimatedValue: formatCurrency(initialValues?.estimatedValue),
+      verifiedDamage: formatCurrency(initialValues?.verifiedDamage),
+      claimedAmount: formatCurrency(initialValues?.claimedAmount),
+      recoveredAmount: formatCurrency(initialValues?.recoveredAmount),
     },
   });
 

@@ -50,6 +50,13 @@
       "when": 1768935067279,
       "tag": "0006_nervous_vulcan",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1768936105485,
+      "tag": "0007_giant_kat_farrell",
+      "breakpoints": true
     }
   ]
 }

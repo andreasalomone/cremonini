@@ -115,5 +115,19 @@
     "message_title": "Descrizione",
     "message_description": "Descrizione dettagliata dell'attività.",
     "submit_button": "Salva"
+  },
+  "DashboardStats": {
+    "total_claims": "Sinistri Totali",
+    "total_claims_desc": "Totale sinistri inseriti",
+    "active_claims": "Sinistri Aperti",
+    "active_claims_desc": "Pratiche attualmente in gestione",
+    "critical_claims": "Sinistri Critici",
+    "critical_claims_desc": "In scadenza o scaduti",
+    "total_value": "Valore Totale",
+    "total_value_desc": "Stima economica sinistri aperti",
+    "total_recovered": "Totale Recuperato",
+    "total_recovered_desc": "Importo recuperato ad oggi",
+    "residual_deductible": "Residuo Franchigia",
+    "residual_deductible_desc": "Franchigia aggregata rimanente"
   }
 }

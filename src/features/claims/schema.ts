@@ -10,6 +10,9 @@ export const CreateClaimSchema = z.object({
   hasThirdPartyResponsible: z.boolean().default(false),
   carrierName: z.string().optional(),
   estimatedValue: z.string().optional(),
+  verifiedDamage: z.string().optional(),
+  claimedAmount: z.string().optional(),
+  recoveredAmount: z.string().optional(),
   description: z.string().optional(),
   documentUrl: z.string().optional(),
 });
