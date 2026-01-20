@@ -11,8 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { updateClaimStatus } from '@/features/claims/actions/claims.actions';
-
-import type { ClaimStatus } from '../actions/claims.actions';
+import type { ClaimStatus } from '@/features/claims/constants';
 
 type ClaimStatusSelectProps = {
   claimId: string;
@@ -41,10 +40,9 @@ export const ClaimStatusSelect = ({
         if (result.success) {
           toast.success('Status updated successfully');
         } else {
-            // @ts-ignore
           toast.error(result.error || 'Failed to update status');
         }
-      } catch (error) {
+      } catch {
         toast.error('An unexpected error occurred');
       }
     });

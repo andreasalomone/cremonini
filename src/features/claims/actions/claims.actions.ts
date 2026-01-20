@@ -1,24 +1,16 @@
 'use server';
 
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { addDays, addYears } from 'date-fns';
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
 import { db } from '@/libs/DB';
+import { calculateDeadlines } from '@/libs/deadline-logic';
 import { claimsSchema } from '@/models/Schema';
 
-// Claim status enum type for type safety
-export type ClaimStatus = 'OPEN' | 'DOCS_COLLECTION' | 'NEGOTIATION' | 'CLOSED';
+import type { ClaimStatus } from '../constants';
 
-export const CLAIM_STATUS_OPTIONS: { value: ClaimStatus; label: string }[] = [
-  { value: 'OPEN', label: 'Open' },
-  { value: 'DOCS_COLLECTION', label: 'Docs Collection' },
-  { value: 'NEGOTIATION', label: 'Negotiation' },
-  { value: 'CLOSED', label: 'Closed' },
-];
-
-// Types (can be moved to a types file)
+// Types
 export type CreateClaimInput = {
   type: 'TRANSPORT' | 'STOCK' | 'DEPOSIT';
   eventDate: Date;
@@ -30,7 +22,7 @@ export type CreateClaimInput = {
 
 /**
  * "God Mode" Data Access
- * S&A Admin sees ALL.
+ * S&A Admin sees ALL (limited to 100 for scalability).
  * Company Rep sees ONLY their org.
  */
 export async function getClaims() {
@@ -45,18 +37,23 @@ export async function getClaims() {
   const isSaAdmin = user.publicMetadata?.role === 'ADMIN_SA';
 
   if (isSaAdmin) {
-    // S&A Admin: Fetch ALL claims
-    // Optionally we could support filtering by query params here
-    return await db.select().from(claimsSchema);
+    // Audit finding: Add limit for admin view scalability
+    return await db
+      .select()
+      .from(claimsSchema)
+      .orderBy(desc(claimsSchema.createdAt))
+      .limit(100);
   }
 
-  // Regular User: Must enforce OrgId
   if (!orgId) {
-    // If no active org context, return empty or throw
     return [];
   }
 
-  return await db.select().from(claimsSchema).where(eq(claimsSchema.orgId, orgId));
+  return await db
+    .select()
+    .from(claimsSchema)
+    .where(eq(claimsSchema.orgId, orgId))
+    .orderBy(desc(claimsSchema.createdAt));
 }
 
 export async function createClaim(data: CreateClaimInput) {
@@ -66,37 +63,32 @@ export async function createClaim(data: CreateClaimInput) {
     throw new Error('Unauthorized: No Organization or User context');
   }
 
-  console.log('Creating claim for org:', orgId, 'by user:', userId);
-
   // --- AUTOMATED DEADLINE LOGIC ---
   const eventDate = new Date(data.eventDate);
-  const reserveDeadline = addDays(eventDate, 7); // Default 7 days
-  const prescriptionDeadline = addYears(eventDate, 1); // Default 1 year
+  const { reserveDeadline, prescriptionDeadline } = calculateDeadlines(eventDate, data.type);
 
-  // Note: Drizzle `date` column expects string 'YYYY-MM-DD' usually
-  // We explicitly convert dates to strings to satisfy Drizzle types if needed,
-  // or rely on driver coercion. Ideally schema should specify { mode: 'date' }
-  // but for now we pass .toISOString().split('T')[0] to be safe with standard date types.
+  // Helper to format Date to YYYY-MM-DD for PG date columns
+  const formatDate = (d: Date): string => d.toISOString().split('T')[0]!;
+  const formatDateNullable = (d: Date | null): string | null =>
+    d ? formatDate(d) : null;
 
-  const formatDate = (d: Date) => d.toISOString().split('T')[0]!;
-
-  await db.insert(claimsSchema).values({
+  const newClaim: typeof claimsSchema.$inferInsert = {
     orgId,
     creatorId: userId,
     status: 'OPEN',
     type: data.type,
-    // @ts-ignore: Drizzle type safety for Date vs String can be tricky here
     eventDate: formatDate(eventDate),
     carrierName: data.carrierName,
     estimatedValue: data.estimatedValue,
     description: data.description,
     documentUrl: data.documentUrl,
-    // @ts-ignore
-    reserveDeadline: formatDate(reserveDeadline),
-    // @ts-ignore
-    prescriptionDeadline: formatDate(prescriptionDeadline),
-  });
+    reserveDeadline: formatDateNullable(reserveDeadline),
+    prescriptionDeadline: formatDateNullable(prescriptionDeadline),
+  };
 
+  await db.insert(claimsSchema).values(newClaim);
+
+  revalidatePath('/dashboard/claims');
   return { success: true };
 }
 
@@ -108,15 +100,12 @@ export async function updateClaimStatus(claimId: string, newStatus: ClaimStatus)
     return { success: false, error: 'Unauthorized' };
   }
 
-  // --- GOD MODE LOGIC ---
   const isSaAdmin = user.publicMetadata?.role === 'ADMIN_SA';
 
-  // If NOT admin and NO org context, deny
   if (!isSaAdmin && !orgId) {
     return { success: false, error: 'Unauthorized: No Organization context' };
   }
 
-  // Validate the claim ownership if not Admin
   if (!isSaAdmin) {
     const existingClaim = await db.query.claimsSchema.findFirst({
       where: and(eq(claimsSchema.id, claimId), eq(claimsSchema.orgId, orgId!)),
@@ -133,9 +122,11 @@ export async function updateClaimStatus(claimId: string, newStatus: ClaimStatus)
     updatedAt: new Date(),
   };
 
-  // If closing, set closedAt
+  // --- AUDIT TRAIL: CAPTURE CLOSED_AT ---
   if (newStatus === 'CLOSED') {
     dataToUpdate.closedAt = new Date();
+  } else {
+    dataToUpdate.closedAt = null; // Reset if reopened
   }
 
   try {
@@ -147,7 +138,7 @@ export async function updateClaimStatus(claimId: string, newStatus: ClaimStatus)
     revalidatePath('/dashboard/claims');
     return { success: true };
   } catch (error) {
-    console.error('Failed to update claim status:', error);
+    console.error(`[ClaimsAction] Failed to update claim ${claimId} status:`, error);
     return { success: false, error: 'Database update failed' };
   }
 }

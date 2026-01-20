@@ -30,6 +30,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { createClaim } from '@/features/claims/actions/claims.actions';
 import type { CreateClaimFormValues } from '@/features/claims/schema';
 import { CreateClaimSchema } from '@/features/claims/schema';
+import { calculateDeadlines } from '@/libs/deadline-logic';
 import { cn } from '@/utils/Helpers';
 
 export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
@@ -44,6 +45,11 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
       description: '',
     },
   });
+
+  const watchType = form.watch('type');
+  const watchDate = form.watch('eventDate');
+
+  const deadlines = watchDate ? calculateDeadlines(watchDate, watchType) : null;
 
   async function onSubmit(data: CreateClaimFormValues) {
     setIsSubmitting(true);
@@ -128,6 +134,20 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
                   />
                 </PopoverContent>
               </Popover>
+              {deadlines && (
+                <div className="mt-2 space-y-1 rounded-md bg-muted p-2 text-xs text-muted-foreground">
+                  <p>
+                    📅 Scadenza Riserva:
+                    {' '}
+                    {deadlines.reserveDeadline ? format(deadlines.reserveDeadline, 'PPP') : 'N/A'}
+                  </p>
+                  <p>
+                    ⚖️ Prescrizione:
+                    {' '}
+                    {format(deadlines.prescriptionDeadline, 'PPP')}
+                  </p>
+                </div>
+              )}
               <FormMessage />
             </FormItem>
           )}

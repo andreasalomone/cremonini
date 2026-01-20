@@ -18,14 +18,12 @@ export const FileUploader = ({
       endpoint={endpoint}
       onClientUploadComplete={(res) => {
         // Do something with the response
-        console.log('Files: ', res);
         if (res) {
           onClientUploadComplete(res as { url: string }[]);
         }
       }}
       onUploadError={(error: Error) => {
         // Do something with the error.
-        alert(`ERROR! ${error.message}`);
         onUploadError(error);
       }}
     />

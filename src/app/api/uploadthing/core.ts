@@ -2,6 +2,8 @@ import { auth } from '@clerk/nextjs/server';
 import { createUploadthing, type FileRouter } from 'uploadthing/next';
 import { UploadThingError } from 'uploadthing/server';
 
+import { logger } from '@/libs/Logger';
+
 const f = createUploadthing();
 
 // FileRouter for your app, can contain multiple FileRoutes
@@ -23,9 +25,9 @@ export const ourFileRouter = {
     })
     .onUploadComplete(async ({ metadata, file }) => {
       // This code RUNS ON YOUR SERVER after upload
-      console.log('Upload complete for userId:', metadata.userId);
+      logger.info('Upload complete for userId:', metadata.userId);
 
-      console.log('file url', file.url);
+      logger.info('file url', file.url);
 
       // !!! Whatever is returned here is sent to the clientside `onClientUploadComplete` callback
       return { uploadedBy: metadata.userId };
@@ -40,7 +42,7 @@ export const ourFileRouter = {
       return { userId: user.userId };
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      console.log('PDF Upload complete:', file.url);
+      logger.info('PDF Upload complete:', file.url);
       return { uploadedBy: metadata.userId, url: file.url };
     }),
 } satisfies FileRouter;
