@@ -1,0 +1,1 @@
+ALTER TABLE "claims" ADD COLUMN "closed_at" timestamp;

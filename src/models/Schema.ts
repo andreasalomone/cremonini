@@ -1,5 +1,7 @@
 import {
   bigint,
+  date,
+  pgEnum,
   pgTable,
   serial,
   text,
@@ -51,6 +53,51 @@ export const todoSchema = pgTable('todo', {
   ownerId: text('owner_id').notNull(),
   title: text('title').notNull(),
   message: text('message').notNull(),
+  updatedAt: timestamp('updated_at', { mode: 'date' })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+});
+
+// --- CLAIMS MODULE ---
+
+export const claimStatusEnum = pgEnum('claim_status', [
+  'OPEN',
+  'DOCS_COLLECTION',
+  'NEGOTIATION',
+  'CLOSED',
+]);
+
+export const claimTypeEnum = pgEnum('claim_type', [
+  'TRANSPORT',
+  'STOCK',
+  'DEPOSIT',
+]);
+
+export const claimsSchema = pgTable('claims', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  orgId: text('org_id').notNull(), // Links to Clerk Organization
+  creatorId: text('creator_id'), // Links to Clerk User
+
+  status: claimStatusEnum('status').default('OPEN').notNull(),
+  type: claimTypeEnum('type').notNull(),
+
+  eventDate: date('event_date').notNull(),
+  carrierName: text('carrier_name'),
+  estimatedValue: text('estimated_value'), // Storing as text or numeric(10,2) handled in logic
+  description: text('description'),
+  documentUrl: text('document_url'), // UploadThing URL
+
+  // Deadlines
+  reserveDeadline: date('reserve_deadline'),
+  prescriptionDeadline: date('prescription_deadline'),
+
+  // Timestamps
+  closedAt: timestamp('closed_at', { mode: 'date' }),
+
   updatedAt: timestamp('updated_at', { mode: 'date' })
     .defaultNow()
     .$onUpdate(() => new Date())

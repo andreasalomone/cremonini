@@ -8,6 +8,20 @@
       "when": 1726784321202,
       "tag": "0000_init-db",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1768907717747,
+      "tag": "0001_windy_electro",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1768911775680,
+      "tag": "0002_flowery_wendell_vaughn",
+      "breakpoints": true
     }
   ]
 }

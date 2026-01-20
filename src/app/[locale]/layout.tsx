@@ -3,6 +3,7 @@ import '@/styles/global.css';
 import type { Metadata } from 'next';
 import { NextIntlClientProvider, useMessages } from 'next-intl';
 import { unstable_setRequestLocale } from 'next-intl/server';
+import { Toaster } from 'sonner';
 
 import { DemoBadge } from '@/components/DemoBadge';
 import { AllLocales } from '@/utils/AppConfig';
@@ -61,6 +62,7 @@ export default function RootLayout(props: {
           {props.children}
 
           <DemoBadge />
+          <Toaster />
         </NextIntlClientProvider>
       </body>
     </html>
