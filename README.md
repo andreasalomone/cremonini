@@ -8,8 +8,9 @@ A centralized, multi-tenant web application for managing claims across the Cremo
 -   **"God Mode" Admin Access**: S&A Admins have global visibility and management capabilities across all tenants.
 -   **Claims Management**: Full lifecycle management from "Open" to "Closed" with customizable statuses.
 -   **Document Management**: Secure file uploads (PDF, Images) via UploadThing.
--   **Automated Deadlines**: (In Progress) Auto-calculation of legal deadlines (Reserve & Prescription) based on event dates.
--   **Modern UI**: Built with Shadcn UI for a professional and responsive experience.
+-   **Internationalization (i18n)**: Default Italian (`it`) support, with English (`en`) and French (`fr`) translations.
+-   **Automated Deadlines**: (In Progress) Auto-calculation of legal deadlines (Reserve & Prescription) with automated email alerts via cron jobs.
+-   **Modern UI**: Built with Shadcn UI and consistent Cremonini branding.
 
 ## 🛠 Tech Stack
 
@@ -48,12 +49,24 @@ A centralized, multi-tenant web application for managing claims across the Cremo
     Create a `.env` or `.env.local` file in the root directory and add the necessary environment variables for Clerk, Drizzle, and UploadThing.
 
     ```bash
-    # Example (refer to .env.example if available)
+    # Authentication (Clerk)
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=...
     CLERK_SECRET_KEY=...
+
+    # Database (Supabase/Drizzle)
     DATABASE_URL=...
+
+    # Storage (UploadThing)
     UPLOADTHING_SECRET=...
     UPLOADTHING_APP_ID=...
+
+    # Email & Cron (Resend)
+    RESEND_API_KEY=...
+    CRON_SECRET=...
+    NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+    # Security (Admin Org)
+    NEXT_PUBLIC_ADMIN_ORG_ID=...
     ```
 
 4.  **Run the development server:**

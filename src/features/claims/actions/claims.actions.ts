@@ -1,11 +1,12 @@
 'use server';
 
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs/server';
 import { and, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
 import { db } from '@/libs/DB';
 import { calculateDeadlines } from '@/libs/deadline-logic';
+import { Env } from '@/libs/Env';
 import { claimsSchema } from '@/models/Schema';
 
 import type { ClaimStatus } from '../constants';
@@ -27,26 +28,21 @@ export type CreateClaimInput = {
  */
 export async function getClaims() {
   const { orgId } = await auth();
-  const user = await currentUser();
 
-  if (!user) {
-    throw new Error('Unauthorized');
+  if (!orgId) {
+    return [];
   }
 
   // --- GOD MODE LOGIC ---
-  const isSaAdmin = user.publicMetadata?.role === 'ADMIN_SA';
+  const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
 
-  if (isSaAdmin) {
+  if (isSuperAdmin) {
     // Audit finding: Add limit for admin view scalability
     return await db
       .select()
       .from(claimsSchema)
       .orderBy(desc(claimsSchema.createdAt))
       .limit(100);
-  }
-
-  if (!orgId) {
-    return [];
   }
 
   return await db
@@ -93,20 +89,19 @@ export async function createClaim(data: CreateClaimInput) {
 }
 
 export async function updateClaimStatus(claimId: string, newStatus: ClaimStatus) {
-  const { orgId } = await auth();
-  const user = await currentUser();
+  const { orgId, userId } = await auth();
 
-  if (!user) {
+  if (!userId) {
     return { success: false, error: 'Unauthorized' };
   }
 
-  const isSaAdmin = user.publicMetadata?.role === 'ADMIN_SA';
+  const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
 
-  if (!isSaAdmin && !orgId) {
+  if (!isSuperAdmin && !orgId) {
     return { success: false, error: 'Unauthorized: No Organization context' };
   }
 
-  if (!isSaAdmin) {
+  if (!isSuperAdmin) {
     const existingClaim = await db.query.claimsSchema.findFirst({
       where: and(eq(claimsSchema.id, claimId), eq(claimsSchema.orgId, orgId!)),
     });

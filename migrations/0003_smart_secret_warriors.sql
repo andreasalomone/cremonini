@@ -1,0 +1,1 @@
+ALTER TABLE "claims" ADD COLUMN "reserve_notification_sent" boolean DEFAULT false NOT NULL;

@@ -35,7 +35,7 @@
 
 **User Story:** As the **System**, I must **calculate legal deadlines**, so that users are alerted before a claim becomes time-barred.
 
-* **Implementation Status:** 🚧 **PENDING (Next Sprint)**
+* **Implementation Status:** ✅ **DONE**
 * **Acceptance Criteria:**
 * Verify `Reserve Deadline` = Event Date + 7 days (Transport).
 * Verify `Prescription Deadline` = Event Date + 1 year (CMR).
@@ -55,9 +55,20 @@
 
 ### 3.2 UI Nuances
 
-* **Loading States:** Use `useTransition` pending states on the Status Dropdown to prevent double-clicks.
-* **Feedback:** Use `sonner` toasts for "Status Updated" or "Upload Failed".
-* **Localization:** All visible statuses and claim types must be displayed in Italian.
+* **Localization (Italian First):**
+    *   **Primary Language:** Italian (`it`) is the default and source of truth across the platform.
+    *   **Fallback:** English (`en`) and French (`fr`) translations are maintained for broader accessibility.
+    *   **Branding:** Standard boilerplate text is replaced with Cremonini-specific branding in all locales.
+
+---
+
+### 3.3 Routing Architecture
+*   **Authentication Boundary:** All dashboard routes are nested under the `(auth)` group to enforce authentication and organization context.
+*   **Paths:**
+    *   `/dashboard`: Command Center / KPI Overview.
+    *   `/dashboard/claims`: Claims Management Table.
+    *   `/dashboard/organization-profile`: Company Settings.
+    *   `/dashboard/user-profile`: Profile Management.
 
 ## 4. Technical Implementation Specs
 
@@ -66,7 +77,7 @@
 * **Framework:** Next.js 15 (App Router).
 * **Auth & Tenancy:** **Clerk**.
 * *Mapping:* Clerk "Organization" = Cremonini "Company".
-* *Mapping:* Clerk "User Metadata" (`role: 'ADMIN_SA'`) = Super Admin.
+* *Mapping:* Clerk "Organization ID" (`NEXT_PUBLIC_ADMIN_ORG_ID`) = Super Admin Context.
 
 * **Database:** PostgreSQL (via **Supabase**) managed by **Drizzle ORM**.
 * **Storage:** **UploadThing** (S3 wrapper).
@@ -113,11 +124,11 @@ Since we removed Supabase RLS, security is enforced at the **Application Layer (
 **The `getClaims` Pattern:**
 
 1. **Authenticate:** `const { userId, orgId } = auth();`
-2. **Check Admin:** `const isSuperAdmin = user.publicMetadata.role === 'ADMIN_SA';`
+2. **Check Admin:** `const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;`
 3. **Execute Query:**
 * **IF `isSuperAdmin`:** `return db.select().from(claims);` (Access All).
-* **IF Standard User:** `return db.select().from(claims).where(eq(claims.orgId, orgId));` (Strict Isolation).
-* **IF No Context:** Throw 403 Error.
+* **IF Standard User (with `orgId`):** `return db.select().from(claims).where(eq(claims.orgId, orgId));` (Strict Isolation).
+* **IF No Org Context:** Return `[]` (Graceful handling of personal workspace).
 
 ## 5. Logic & Business Rules
 
@@ -137,7 +148,19 @@ The system enforces the following flow, mappable to S&A's custom states:
 * **Rule B (Prescription):** `prescriptionDeadline` = `eventDate` + 1 year.
 * **Handling:** Dates must be calculated server-side using `date-fns` to ensure consistency.
 
-## 6. Roadmap & Implementation Plan
+## 6. UI & Brand Identity Refactoring (Current Focus)
+
+### 6.1 Landing Page Pivot
+*   **Minimalist Core:** The landing page must be reduced to its absolute essentials.
+*   **UVP (Unique Value Proposition):** A powerful, single-sentence statement defining the platform (e.g., *"Gestione Sinistri Professionale per il Gruppo Cremonini: Monitoraggio, Conformità e Risultati"*).
+*   **Action Driven:** Primary focus on "Socio Accedi" (Sign In) and "Inizia" (Sign Up) with Cremonini corporate styling.
+*   **Zero Boilerplate:** Remove all placeholder text, generic SaaS illustrations, and "Next.js SaaS Boilerplate" branding (credits/links).
+
+### 6.2 Application Interface Cleanup
+*   **Dashboard Branding:** Ensure all logos, colors, and fonts align with S&A/Cremonini brand guidelines (Professional, Secure, Institutional).
+*   **Boilerplate Removal:** Scrub the footer, settings page, and notification headers of any remaining boilerplate-provided text or links.
+
+## 7. Roadmap & Implementation Plan
 
 ### Phase 1: The Core (✅ Completed)
 
@@ -148,11 +171,12 @@ The system enforces the following flow, mappable to S&A's custom states:
 * [x] Feature: Status Updates with Timestamp Logic.
 * [x] Feature: File Uploads via UploadThing.
 
-### Phase 2: Intelligence & Automation (📍 Current Focus)
+### Phase 2: Intelligence & UI Refinement (📍 Current Focus)
 
-* [ ] **Deadline Service:** Implement auto-calculation logic on creation.
-* [ ] **Notifications:** Email alerts via Resend/Clerk when deadlines approach (7 days / 1 day).
-* [ ] **Dashboard KPIs:** Visualize "Claims Open" vs "Claims Closed" using the `closedAt` data.
+* [ ] **UI Refactor:** Implement minimal landing page and scrub boilerplate traces.
+* [ ] **Dashboard Branding:** Align UI with S&A corporate identity.
+* [ ] **Deadline Service Integration:** Ensure cron job is triggered and monitoring is active.
+* [ ] **Dashboard KPIs:** Visualize "Claims Open" vs "Claims Closed" using Charts.
 
 ### Phase 3: AI Enhancements (Future)
 

@@ -1,166 +1,167 @@
 {
   "Index": {
-    "meta_title": "SaaS Template - The perfect SaaS template to build and scale your business with ease.",
-    "meta_description": "A free and open-source landing page template for your SaaS business, built with React, TypeScript, Shadcn UI, and Tailwind CSS."
+    "meta_title": "Cremonini - S&A Claims Management Platform",
+    "meta_description": "Centralized platform for claims management of the Cremonini Group."
   },
   "Navbar": {
     "sign_in": "Sign In",
     "sign_up": "Sign Up",
-    "product": "Product",
+    "product": "Platform",
     "docs": "Docs",
-    "blog": "Blog",
-    "community": "Community",
-    "company": "Company"
+    "blog": "News",
+    "community": "Support",
+    "company": "Cremonini Group"
   },
   "Hero": {
-    "follow_twitter": "Follow @Ixartz on Twitter",
-    "title": "The perfect <important>SaaS template</important> to build and scale your business with ease.",
-    "description": "A free and open-source landing page template for your SaaS business, built with React, TypeScript, Shadcn UI, and Tailwind CSS.",
-    "primary_button": "Get Started",
-    "secondary_button": "Star on GitHub"
+    "follow_twitter": "Cremonini Group",
+    "title": "Centralized <important>Claims</important> & Legal Deadline Management.",
+    "description": "Secure platform for reporting, monitoring, and managing claims for all Cremonini Group companies.",
+    "primary_button": "Claims Dashboard",
+    "secondary_button": "Documentation"
   },
   "Sponsors": {
-    "title": "Sponsored by"
+    "title": "Powered by"
   },
   "Features": {
     "section_subtitle": "Features",
-    "section_title": "Unlock the Full Potential of the SaaS Template",
-    "section_description": "A free and open-source landing page template for your SaaS business, built with React, TypeScript, Shadcn UI, and Tailwind CSS.",
-    "feature1_title": "Node.js",
-    "feature2_title": "React",
-    "feature3_title": "Tailwind CSS",
-    "feature4_title": "TypeScript",
-    "feature5_title": "Shadcn UI",
-    "feature6_title": "ESLint",
-    "feature_description": "A free and open-source landing page template for your SaaS business, built with React, TypeScript, Shadcn UI, and Tailwind CSS."
+    "section_title": "Complete Claims Control",
+    "section_description": "Advanced tools to ensure deadline compliance and data centralization.",
+    "feature1_title": "Multi-Tenant",
+    "feature2_title": "Auto Deadlines",
+    "feature3_title": "Secure Archive",
+    "feature4_title": "God Mode",
+    "feature5_title": "Notifications",
+    "feature6_title": "Reports",
+    "feature_description": "Separate management for each group company with centralized S&A supervision."
   },
   "Pricing": {
-    "section_subtitle": "Features",
-    "section_title": "Unlock the Full Potential of the SaaS Template",
-    "section_description": "A free and open-source landing page template for your SaaS business, built with React, TypeScript, Shadcn UI, and Tailwind CSS.",
-    "button_text": "Get Started"
+    "section_subtitle": "Access",
+    "section_title": "Restricted Access",
+    "section_description": "Access to the platform is strictly reserved for authorized personnel of the Cremonini Group and S&A.",
+    "button_text": "Request Access"
   },
   "PricingPlan": {
-    "free_plan_name": "Free",
-    "premium_plan_name": "Premium",
+    "free_plan_name": "Standard",
+    "premium_plan_name": "Pro",
     "enterprise_plan_name": "Enterprise",
-    "free_plan_description": "For individuals",
-    "premium_plan_description": "For small teams",
-    "enterprise_plan_description": "For industry leaders",
-    "feature_team_member": "{number} Team Members",
-    "feature_website": "{number} Websites",
-    "feature_storage": "{number} GB Storage",
-    "feature_transfer": "{number} TB Transfer",
+    "free_plan_description": "Basic access",
+    "premium_plan_description": "Advanced features",
+    "enterprise_plan_description": "Full management",
+    "feature_team_member": "{number} Users",
+    "feature_website": "Portal Access",
+    "feature_storage": "Unlimited Archive",
+    "feature_transfer": "Priority Support",
     "feature_email_support": "Email Support",
     "plan_interval_month": "month",
     "plan_interval_year": "year",
-    "next_renew_date": "Your subscription renews on {date}"
+    "next_renew_date": "Renews on {date}"
   },
   "FAQ": {
-    "question": "Lorem ipsum dolor sit amet, consectetur adipiscing elit?",
-    "answer": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam aliquam enim dui, id consequat turpis ullamcorper ac. Mauris id quam dolor. Nullam eu egestas turpis. Proin risus elit, sollicitudin in mi a, accumsan euismod turpis. In euismod mi sed diam tristique hendrerit."
+    "question": "How can I request a new account?",
+    "answer": "Contact S&A administration to request a new user creation for your company."
   },
   "CTA": {
-    "title": "You are ready?",
-    "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-    "button_text": "Star on GitHub"
+    "title": "Need support?",
+    "description": "The S&A team is available to assist you with claims management.",
+    "button_text": "Contact Support"
   },
   "Footer": {
-    "product": "Product",
+    "product": "Platform",
     "docs": "Docs",
-    "blog": "Blog",
-    "community": "Community",
-    "company": "Company",
-    "terms_of_service": "Terms Of Service",
+    "blog": "News",
+    "community": "Support",
+    "company": "Cremonini Group",
+    "terms_of_service": "Terms of Service",
     "privacy_policy": "Privacy Policy",
     "designed_by": "Designed by <author></author>."
   },
   "ProtectFallback": {
-    "not_enough_permission": "You do not have the permissions to perform this action"
+    "not_enough_permission": "You do not have permission to perform this action"
   },
   "SignIn": {
-    "meta_title": "Sign in",
-    "meta_description": "Seamlessly sign in to your account with our user-friendly login process."
+    "meta_title": "Sign In - Cremonini Claims",
+    "meta_description": "Sign in to the claims management platform."
   },
   "SignUp": {
-    "meta_title": "Sign up",
-    "meta_description": "Effortlessly create an account through our intuitive sign-up process."
+    "meta_title": "Sign Up",
+    "meta_description": "New account registration."
   },
   "DashboardLayout": {
     "home": "Home",
+    "claims": "Claims",
     "todos": "Todos",
     "members": "Members",
     "billing": "Billing",
     "settings": "Settings"
   },
   "Dashboard": {
-    "meta_title": "SaaS Template Dashboard",
-    "meta_description": "A free and open-source landing page template for your SaaS business, built with Next.js, TypeScript, Shadcn UI, and Tailwind CSS."
+    "meta_title": "Dashboard - Cremonini Claims",
+    "meta_description": "Claims management control panel."
   },
   "DashboardIndex": {
-    "title_bar": "Dashboard",
-    "title_bar_description": "Welcome to your dashboard",
-    "message_state_title": "Let's get started",
-    "message_state_description": "You can customize this page by editing the file at <code>dashboard/page.tsx</code>",
-    "message_state_button": "Star on GitHub",
-    "message_state_alternative": "Want more features and the latest updates from Next.js 16? Try <url></url>."
+    "title_bar": "Command Center",
+    "title_bar_description": "Overview of claims status and upcoming deadlines",
+    "message_state_title": "No recent claims",
+    "message_state_description": "There are no recent activities to display.",
+    "message_state_button": "Open New Claim",
+    "message_state_alternative": "Check the <url>operational guide</url> for more details."
   },
   "UserProfile": {
     "title_bar": "User Profile",
-    "title_bar_description": "View and manage your user profile"
+    "title_bar_description": "Manage your personal information"
   },
   "OrganizationProfile": {
-    "title_bar": "Organization Management",
-    "title_bar_description": "Manage your organization"
+    "title_bar": "Organization",
+    "title_bar_description": "Manage organization data"
   },
   "Billing": {
-    "title_bar": "Billing",
-    "title_bar_description": "Manage your billing and subscription",
+    "title_bar": "Subscription",
+    "title_bar_description": "Software license details",
     "current_section_title": "Current Plan",
-    "current_section_description": "Adjust your payment plan to best suit your requirements",
-    "manage_subscription_button": "Manage Subscription"
+    "current_section_description": "Active plan details",
+    "manage_subscription_button": "Manage"
   },
   "BillingOptions": {
     "current_plan": "Current Plan",
-    "upgrade_plan": "Get Started"
+    "upgrade_plan": "Upgrade"
   },
   "CheckoutConfirmation": {
-    "title_bar": "Payment Confirmation",
-    "message_state_title": "Payment successful",
-    "message_state_description": "Your payment has been successfully processed. Thank you for your purchase!",
-    "message_state_button": "Go back to Billing"
+    "title_bar": "Confirmation",
+    "message_state_title": "Operation successful",
+    "message_state_description": "The operation was completed successfully.",
+    "message_state_button": "Back to Dashboard"
   },
   "DataTable": {
-    "no_results": "No results."
+    "no_results": "No results found."
   },
   "Todos": {
-    "title_bar": "Todo List",
-    "title_bar_description": "View and manage your todo list",
-    "add_todo_button": "New todo"
+    "title_bar": "Tasks",
+    "title_bar_description": "List of tasks to complete",
+    "add_todo_button": "New Task"
   },
   "TodoTableColumns": {
-    "open_menu": "Open menu",
+    "open_menu": "Menu",
     "edit": "Edit",
     "delete": "Delete",
     "title_header": "Title",
-    "message_header": "Message",
-    "created_at_header": "Created at"
+    "message_header": "Details",
+    "created_at_header": "Created At"
   },
   "AddTodo": {
-    "title_bar": "Add Todo",
-    "add_todo_section_title": "Create a new todo",
-    "add_todo_section_description": "Fill in the form below to create a new todo"
+    "title_bar": "New Task",
+    "add_todo_section_title": "Create new task",
+    "add_todo_section_description": "Enter details for the new task"
   },
   "EditTodo": {
-    "title_bar": "Edit todo",
-    "edit_todo_section_title": "Modify todo",
-    "edit_todo_section_description": "Fill in the form below to edit the todo"
+    "title_bar": "Edit Task",
+    "edit_todo_section_title": "Modify task",
+    "edit_todo_section_description": "Update task details"
   },
   "TodoForm": {
     "title_label": "Title",
-    "title_description": "Enter a descriptive title for your todo.",
-    "message_title": "Message",
-    "message_description": "Enter a detailed message for your todo.",
-    "submit_button": "Submit"
+    "title_description": "Short title of the task.",
+    "message_title": "Description",
+    "message_description": "Detailed description of the task.",
+    "submit_button": "Save"
   }
 }

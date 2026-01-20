@@ -1,63 +1,25 @@
-import { useTranslations } from 'next-intl';
+import { getClaims } from '@/features/claims/actions/claims.actions';
+import { ClaimsTable } from '@/features/claims/components/ClaimsTable';
+import { getDashboardStats } from '@/features/dashboard/actions/dashboard.actions';
+import { StatsGrid } from '@/features/dashboard/components/StatsGrid';
 
-import { MessageState } from '@/features/dashboard/MessageState';
-import { TitleBar } from '@/features/dashboard/TitleBar';
-import { SponsorLogos } from '@/features/sponsors/SponsorLogos';
-
-const DashboardIndexPage = () => {
-  const t = useTranslations('DashboardIndex');
+export default async function DashboardPage() {
+  const stats = await getDashboardStats();
+  const claims = await getClaims();
 
   return (
-    <>
-      <TitleBar
-        title={t('title_bar')}
-        description={t('title_bar_description')}
-      />
+    <div className="flex flex-col gap-8 p-8">
+      <div className="space-y-1">
+        <h1 className="text-3xl font-bold tracking-tight">Command Center</h1>
+        <p className="text-muted-foreground">Monitor real-time claim metrics and deadlines.</p>
+      </div>
 
-      <MessageState
-        icon={(
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M0 0h24v24H0z" stroke="none" />
-            <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3M12 12l8-4.5M12 12v9M12 12L4 7.5" />
-          </svg>
-        )}
-        title={t('message_state_title')}
-        description={t.rich('message_state_description', {
-          code: chunks => (
-            <code className="bg-secondary text-secondary-foreground">
-              {chunks}
-            </code>
-          ),
-        })}
-        button={(
-          <>
-            <div className="mt-2 text-sm font-light text-muted-foreground">
-              {t.rich('message_state_alternative', {
-                url: () => (
-                  <a
-                    className="text-blue-500 hover:text-blue-600"
-                    href="https://nextjs-boilerplate.com/pro-saas-starter-kit"
-                  >
-                    Next.js Boilerplate SaaS
-                  </a>
-                ),
-              })}
-            </div>
+      <StatsGrid {...stats} />
 
-            <div className="mt-7">
-              <SponsorLogos />
-            </div>
-          </>
-        )}
-      />
-    </>
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Latest Claims</h2>
+        <ClaimsTable claims={claims} />
+      </div>
+    </div>
   );
-};
-
-export default DashboardIndexPage;
+}

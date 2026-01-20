@@ -1,5 +1,6 @@
 import {
   bigint,
+  boolean,
   date,
   pgEnum,
   pgTable,
@@ -97,6 +98,10 @@ export const claimsSchema = pgTable('claims', {
 
   // Timestamps
   closedAt: timestamp('closed_at', { mode: 'date' }),
+
+  // Notification Tracking
+  reserveNotificationSent: boolean('reserve_notification_sent').default(false).notNull(),
+  prescriptionNotificationSent: boolean('prescription_notification_sent').default(false).notNull(),
 
   updatedAt: timestamp('updated_at', { mode: 'date' })
     .defaultNow()

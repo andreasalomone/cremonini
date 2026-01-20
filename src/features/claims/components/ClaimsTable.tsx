@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/table';
 
 import { ClaimStatusSelect } from './ClaimStatusSelect';
+import { DeadlineBadge } from './DeadlineBadge';
 
 // Minimal type definition based on DB schema
 type Claim = {
@@ -20,6 +21,7 @@ type Claim = {
   carrierName: string | null;
   estimatedValue: string | null;
   orgId: string;
+  reserveDeadline: string | null;
 };
 
 export const ClaimsTable = ({ claims }: { claims: Claim[] }) => {
@@ -33,6 +35,7 @@ export const ClaimsTable = ({ claims }: { claims: Claim[] }) => {
             <TableHead>Type</TableHead>
             <TableHead>Carrier</TableHead>
             <TableHead>Value</TableHead>
+            <TableHead>Deadline</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
@@ -40,7 +43,7 @@ export const ClaimsTable = ({ claims }: { claims: Claim[] }) => {
           {claims.length === 0
             ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
+                  <TableCell colSpan={7} className="h-24 text-center">
                     No claims found.
                   </TableCell>
                 </TableRow>
@@ -56,6 +59,9 @@ export const ClaimsTable = ({ claims }: { claims: Claim[] }) => {
                     <TableCell>{claim.type}</TableCell>
                     <TableCell>{claim.carrierName || '-'}</TableCell>
                     <TableCell>{claim.estimatedValue || '-'}</TableCell>
+                    <TableCell>
+                      <DeadlineBadge date={claim.reserveDeadline} />
+                    </TableCell>
                     <TableCell>
                       <ClaimStatusSelect claimId={claim.id} currentStatus={claim.status} />
                     </TableCell>

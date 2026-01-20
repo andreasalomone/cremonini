@@ -1,0 +1,167 @@
+{
+  "Index": {
+    "meta_title": "Cremonini - Piattaforma Gestione Sinistri S&A",
+    "meta_description": "Piattaforma centralizzata per la gestione dei sinistri del Gruppo Cremonini."
+  },
+  "Navbar": {
+    "sign_in": "Accedi",
+    "sign_up": "Registrati",
+    "product": "Piattaforma",
+    "docs": "Guida",
+    "blog": "Novità",
+    "community": "Supporto",
+    "company": "Gruppo Cremonini"
+  },
+  "Hero": {
+    "follow_twitter": "Cremonini Group",
+    "title": "Gestione Centralizzata <important>Sinistri</important> e Scadenze Legali.",
+    "description": "Piattaforma sicura per la segnalazione, il monitoraggio e la gestione dei sinistri per tutte le aziende del Gruppo Cremonini.",
+    "primary_button": "Dashboard Sinistri",
+    "secondary_button": "Documentazione"
+  },
+  "Sponsors": {
+    "title": "Powered by"
+  },
+  "Features": {
+    "section_subtitle": "Funzionalità",
+    "section_title": "Controllo Completo delle Pratiche",
+    "section_description": "Strumenti avanzati per garantire il rispetto delle scadenze e la centralizzazione dei dati.",
+    "feature1_title": "Multi-Tenant",
+    "feature2_title": "Scadenze Auto",
+    "feature3_title": "Archivio Sicuro",
+    "feature4_title": "God Mode",
+    "feature5_title": "Notifiche",
+    "feature6_title": "Report",
+    "feature_description": "Gestione separata per ogni azienda del gruppo con supervisione centralizzata S&A."
+  },
+  "Pricing": {
+    "section_subtitle": "Accesso",
+    "section_title": "Accesso Riservato",
+    "section_description": "L'accesso alla piattaforma è strettamente riservato al personale autorizzato del Gruppo Cremonini e S&A.",
+    "button_text": "Richiedi Accesso"
+  },
+  "PricingPlan": {
+    "free_plan_name": "Standard",
+    "premium_plan_name": "Pro",
+    "enterprise_plan_name": "Enterprise",
+    "free_plan_description": "Accesso base",
+    "premium_plan_description": "Funzionalità avanzate",
+    "enterprise_plan_description": "Gestione completa",
+    "feature_team_member": "{number} Utenti",
+    "feature_website": "Accesso Portale",
+    "feature_storage": "Archivio Illimitato",
+    "feature_transfer": "Supporto Prioritario",
+    "feature_email_support": "Supporto Email",
+    "plan_interval_month": "mese",
+    "plan_interval_year": "anno",
+    "next_renew_date": "Rinnovo il {date}"
+  },
+  "FAQ": {
+    "question": "Come posso richiedere un nuovo account?",
+    "answer": "Contatta l'amministrazione S&A per richiedere la creazione di un nuovo utente per la tua azienda."
+  },
+  "CTA": {
+    "title": "Hai bisogno di supporto?",
+    "description": "Il team S&A è a disposizione per assisterti nella gestione delle pratiche.",
+    "button_text": "Contatta Supporto"
+  },
+  "Footer": {
+    "product": "Piattaforma",
+    "docs": "Guida",
+    "blog": "Novità",
+    "community": "Supporto",
+    "company": "Gruppo Cremonini",
+    "terms_of_service": "Termini di Servizio",
+    "privacy_policy": "Privacy Policy",
+    "designed_by": "Sviluppato da <author></author>."
+  },
+  "ProtectFallback": {
+    "not_enough_permission": "Non hai i permessi per eseguire questa azione"
+  },
+  "SignIn": {
+    "meta_title": "Accedi - Cremonini Claims",
+    "meta_description": "Accedi alla piattaforma gestione sinistri."
+  },
+  "SignUp": {
+    "meta_title": "Registrati",
+    "meta_description": "Registrazione nuovo account."
+  },
+  "DashboardLayout": {
+    "home": "Home",
+    "claims": "Sinistri",
+    "todos": "Attività",
+    "members": "Utenti",
+    "billing": "Licenza",
+    "settings": "Impostazioni"
+  },
+  "Dashboard": {
+    "meta_title": "Dashboard - Cremonini Claims",
+    "meta_description": "Pannello di controllo gestione sinistri."
+  },
+  "DashboardIndex": {
+    "title_bar": "Command Center",
+    "title_bar_description": "Panoramica stato sinistri e scadenze imminenti",
+    "message_state_title": "Nessun sinistro recente",
+    "message_state_description": "Non ci sono attività recenti da mostrare.",
+    "message_state_button": "Apri Nuovo Sinistro",
+    "message_state_alternative": "Consulta la <url>guida operativa</url> per maggiori dettagli."
+  },
+  "UserProfile": {
+    "title_bar": "Profilo Utente",
+    "title_bar_description": "Gestisci le tue informazioni personali"
+  },
+  "OrganizationProfile": {
+    "title_bar": "Azienda",
+    "title_bar_description": "Gestione dati aziendali"
+  },
+  "Billing": {
+    "title_bar": "Abbonamento",
+    "title_bar_description": "Dettagli licenza software",
+    "current_section_title": "Piano Attuale",
+    "current_section_description": "Dettagli del piano attivo",
+    "manage_subscription_button": "Gestisci"
+  },
+  "BillingOptions": {
+    "current_plan": "Piano Attuale",
+    "upgrade_plan": "Upgrade"
+  },
+  "CheckoutConfirmation": {
+    "title_bar": "Conferma",
+    "message_state_title": "Operazione completata",
+    "message_state_description": "L'operazione è stata completata con successo.",
+    "message_state_button": "Torna alla Dashboard"
+  },
+  "DataTable": {
+    "no_results": "Nessun risultato trovato."
+  },
+  "Todos": {
+    "title_bar": "Attività",
+    "title_bar_description": "Lista delle attività da completare",
+    "add_todo_button": "Nuova Attività"
+  },
+  "TodoTableColumns": {
+    "open_menu": "Menu",
+    "edit": "Modifica",
+    "delete": "Elimina",
+    "title_header": "Titolo",
+    "message_header": "Dettagli",
+    "created_at_header": "Data Creazione"
+  },
+  "AddTodo": {
+    "title_bar": "Nuova Attività",
+    "add_todo_section_title": "Crea nuova attività",
+    "add_todo_section_description": "Inserisci i dettagli della nuova attività"
+  },
+  "EditTodo": {
+    "title_bar": "Modifica Attività",
+    "edit_todo_section_title": "Modifica attività",
+    "edit_todo_section_description": "Aggiorna i dettagli dell'attività"
+  },
+  "TodoForm": {
+    "title_label": "Titolo",
+    "title_description": "Titolo breve dell'attività.",
+    "message_title": "Descrizione",
+    "message_description": "Descrizione dettagliata dell'attività.",
+    "submit_button": "Salva"
+  }
+}

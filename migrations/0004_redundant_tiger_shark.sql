@@ -1,0 +1,1 @@
+ALTER TABLE "claims" ADD COLUMN "prescription_notification_sent" boolean DEFAULT false NOT NULL;
