@@ -60,7 +60,9 @@
     "claims": "Claims",
     "todos": "Todos",
     "members": "Members",
-    "settings": "Settings"
+    "settings": "Settings",
+    "procura": "Power of Attorney",
+    "reports": "Reports"
   },
   "Dashboard": {
     "meta_title": "Dashboard - Cremonini Claims",

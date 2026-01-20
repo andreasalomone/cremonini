@@ -13,7 +13,22 @@ export type DashboardStats = {
   activeClaims: number;
   criticalClaims: number;
   totalValue: number;
+  totalRecovered: number;
+  recoveryRate: number;
 };
+
+// Helper to parse Italian currency format to numeric
+const parseCurrencySql = (column: unknown) => sql`
+  CAST(
+    NULLIF(
+      REGEXP_REPLACE(
+        REPLACE(REPLACE(${column}, '.', ''), ',', '.'),
+        '[^0-9.]', '', 'g'
+      ),
+      ''
+    ) AS NUMERIC
+  )
+`;
 
 /**
  * Computes dashboard statistics based on user role (Admin vs Tenant).
@@ -40,30 +55,29 @@ export async function getDashboardStats(): Promise<DashboardStats> {
           ${claimsSchema.prescriptionDeadline} <= (CURRENT_DATE + (INTERVAL '1 day' * ${DEADLINES.CRITICAL_PRESCRIPTION_THRESHOLD_DAYS}))::text
         ) THEN 1 END`,
       ),
-      // Fix: Handle Italian currency format (replace thousands '.' with empty, replace decimal ',' with '.')
+      // Total estimated value of active claims
       value: sum(
-        sql`CASE WHEN ${claimsSchema.status} != 'CLOSED' THEN
-          CAST(
-            NULLIF(
-              REGEXP_REPLACE(
-                REPLACE(REPLACE(${claimsSchema.estimatedValue}, '.', ''), ',', '.'),
-                '[^0-9.]', '', 'g'
-              ),
-              ''
-            ) AS NUMERIC
-          )
-        ELSE 0 END`,
+        sql`CASE WHEN ${claimsSchema.status} != 'CLOSED' THEN ${parseCurrencySql(claimsSchema.estimatedValue)} ELSE 0 END`,
       ),
+      // Total recovered amount
+      recovered: sum(parseCurrencySql(claimsSchema.recoveredAmount)),
+      // Total claimed for recovery rate calculation
+      claimed: sum(parseCurrencySql(claimsSchema.claimedAmount)),
     })
     .from(claimsSchema)
     .where(isSuperAdmin ? undefined : eq(claimsSchema.orgId, orgId!));
 
   const stats = statsResult[0];
 
+  const totalRecovered = Number(stats?.recovered ?? 0);
+  const totalClaimed = Number(stats?.claimed ?? 0);
+
   return {
     totalClaims: Number(stats?.total ?? 0),
     activeClaims: Number(stats?.active ?? 0),
     criticalClaims: Number(stats?.critical ?? 0),
     totalValue: Number(stats?.value ?? 0),
+    totalRecovered,
+    recoveryRate: totalClaimed > 0 ? totalRecovered / totalClaimed : 0,
   };
 }

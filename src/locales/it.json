@@ -59,7 +59,9 @@
     "claims": "Sinistri",
     "todos": "Attività",
     "members": "Utenti",
-    "settings": "Impostazioni"
+    "settings": "Impostazioni",
+    "procura": "Procura",
+    "reports": "Reportistica"
   },
   "Dashboard": {
     "meta_title": "Dashboard - Cremonini Claims",

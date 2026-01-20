@@ -2,6 +2,7 @@ import { relations } from 'drizzle-orm';
 import {
   boolean,
   date,
+  index,
   pgEnum,
   pgTable,
   serial,
@@ -110,7 +111,11 @@ export const claimsSchema = pgTable('claims', {
     .$onUpdate(() => new Date())
     .notNull(),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
-});
+}, table => ({
+  orgIdIdx: index('claims_org_id_idx').on(table.orgId),
+  statusIdx: index('claims_status_idx').on(table.status),
+  createdAtIdx: index('claims_created_at_idx').on(table.createdAt),
+}));
 
 // Type inference exports
 export type Claim = typeof claimsSchema.$inferSelect;

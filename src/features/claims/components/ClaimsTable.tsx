@@ -8,6 +8,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import type { PoaStatus } from '@/features/procura/actions/procura.actions';
+import { PoaStatusBadge } from '@/features/procura/components/PoaStatusBadge';
 
 import { ClaimStatusSelect } from './ClaimStatusSelect';
 import { DeadlineBadge } from './DeadlineBadge';
@@ -24,27 +26,38 @@ type Claim = {
   reserveDeadline: string | null;
 };
 
-export const ClaimsTable = ({ claims }: { claims: Claim[] }) => {
+type ClaimsTableProps = {
+  claims: Claim[];
+  poaStatusMap?: Map<string, PoaStatus>;
+  showPoaColumn?: boolean;
+};
+
+export const ClaimsTable = ({
+  claims,
+  poaStatusMap,
+  showPoaColumn = false,
+}: ClaimsTableProps) => {
   return (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>ID</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Carrier</TableHead>
-            <TableHead>Value</TableHead>
-            <TableHead>Deadline</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>Data</TableHead>
+            <TableHead>Tipo</TableHead>
+            <TableHead>Vettore</TableHead>
+            <TableHead>Valore</TableHead>
+            <TableHead>Scadenza</TableHead>
+            {showPoaColumn && <TableHead>Procura</TableHead>}
+            <TableHead>Stato</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {claims.length === 0
             ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">
-                    No claims found.
+                  <TableCell colSpan={showPoaColumn ? 8 : 7} className="h-24 text-center">
+                    Nessun sinistro trovato.
                   </TableCell>
                 </TableRow>
               )
@@ -55,13 +68,18 @@ export const ClaimsTable = ({ claims }: { claims: Claim[] }) => {
                       {claim.id.slice(0, 8)}
                       ...
                     </TableCell>
-                    <TableCell>{new Date(claim.eventDate).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(claim.eventDate).toLocaleDateString('it-IT')}</TableCell>
                     <TableCell>{claim.type}</TableCell>
                     <TableCell>{claim.carrierName || '-'}</TableCell>
                     <TableCell>{claim.estimatedValue || '-'}</TableCell>
                     <TableCell>
                       <DeadlineBadge date={claim.reserveDeadline} />
                     </TableCell>
+                    {showPoaColumn && (
+                      <TableCell>
+                        <PoaStatusBadge status={poaStatusMap?.get(claim.orgId)} />
+                      </TableCell>
+                    )}
                     <TableCell>
                       <ClaimStatusSelect claimId={claim.id} currentStatus={claim.status} />
                     </TableCell>

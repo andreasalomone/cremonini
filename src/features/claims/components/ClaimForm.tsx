@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { CalendarIcon, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 
 import { FileUploader } from '@/components/FileUploader';
 import { Button } from '@/components/ui/button';
@@ -59,11 +60,14 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
     setIsSubmitting(true);
     try {
       await createClaim(data);
+      toast.success('Sinistro creato con successo');
       if (onSuccess) {
         onSuccess();
       }
     } catch (error) {
-      console.error(error);
+      // ✅ AUDIT FIX: Fail loud - show user feedback
+      console.error('[ClaimForm] Failed:', error);
+      toast.error('Errore durante la creazione del sinistro');
     } finally {
       setIsSubmitting(false);
     }
