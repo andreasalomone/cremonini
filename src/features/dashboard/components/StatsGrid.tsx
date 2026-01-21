@@ -1,7 +1,6 @@
 'use client';
 
 import { AlertCircle, Archive, Banknote, ClipboardList, ShieldAlert, TrendingUp } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 import React from 'react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,46 +23,45 @@ export const StatsGrid = ({
   totalRecovered,
   aggregateDeductibleResidual,
 }: StatsGridProps) => {
-  const t = useTranslations('DashboardStats');
   const isDeductibleLow = aggregateDeductibleResidual < (ECONOMICS.ANNUAL_AGGREGATE_DEDUCTIBLE * ECONOMICS.DEDUCTIBLE_LOW_THRESHOLD);
 
   const stats = [
     {
-      title: t('total_claims'),
+      title: 'Sinistri Totali',
       value: totalClaims,
       icon: Archive,
-      description: t('total_claims_desc'),
+      description: 'Totale sinistri inseriti',
     },
     {
-      title: t('active_claims'),
+      title: 'Sinistri Aperti',
       value: activeClaims,
       icon: ClipboardList,
-      description: t('active_claims_desc'),
+      description: 'Pratiche attualmente in gestione',
     },
     {
-      title: t('critical_claims'),
+      title: 'Sinistri Critici',
       value: criticalClaims,
       icon: AlertCircle,
-      description: t('critical_claims_desc'),
+      description: 'In scadenza o scaduti',
       critical: criticalClaims > 0,
     },
     {
-      title: t('total_value'),
+      title: 'Valore Totale',
       value: `€${totalValue.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`,
       icon: TrendingUp,
-      description: t('total_value_desc'),
+      description: 'Stima economica sinistri aperti',
     },
     {
-      title: t('total_recovered'),
+      title: 'Totale Recuperato',
       value: `€${totalRecovered.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`,
       icon: Banknote,
-      description: t('total_recovered_desc'),
+      description: 'Importo recuperato ad oggi',
     },
     {
-      title: t('residual_deductible'),
+      title: 'Residuo Franchigia',
       value: `€${aggregateDeductibleResidual.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`,
       icon: ShieldAlert,
-      description: t('residual_deductible_desc'),
+      description: 'Franchigia aggregata rimanente',
       critical: isDeductibleLow,
     },
   ];

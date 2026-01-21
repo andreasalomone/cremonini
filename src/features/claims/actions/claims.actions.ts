@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { db } from '@/libs/DB';
 import { calculateDeadlines, calculateExtendedDeadline } from '@/libs/deadline-logic';
 import { Env } from '@/libs/Env';
+import { logger } from '@/libs/Logger';
 import { claimsSchema } from '@/models/Schema';
 
 import type { ClaimStatus } from '../constants';
@@ -52,13 +53,13 @@ export async function getClaims() {
     const { orgId } = await auth();
 
     if (!orgId) {
-      console.warn('[ClaimsAction] No orgId found in auth context');
+      logger.warn('[ClaimsAction] No orgId found in auth context');
       return [];
     }
 
     // --- GOD MODE LOGIC ---
     const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
-    console.log(`[ClaimsAction] Fetching claims for orgId: ${orgId} (isSuperAdmin: ${isSuperAdmin})`);
+    logger.info(`[ClaimsAction] Fetching claims for orgId: ${orgId} (isSuperAdmin: ${isSuperAdmin})`);
 
     // ✅ AUDIT FIX: Use query API with relations instead of select()
     const results = await db.query.claimsSchema.findMany({
@@ -68,10 +69,10 @@ export async function getClaims() {
       limit: isSuperAdmin ? 100 : undefined,
     });
 
-    console.log(`[ClaimsAction] Successfully fetched ${results.length} claims`);
+    logger.info(`[ClaimsAction] Successfully fetched ${results.length} claims`);
     return results;
   } catch (error) {
-    console.error('[ClaimsAction] getClaims failed:', error);
+    logger.error('[ClaimsAction] getClaims failed:', error);
     return [];
   }
 }
@@ -229,7 +230,7 @@ export async function updateClaimEconomics(claimId: string, data: UpdateClaimEco
     revalidatePath('/dashboard/claims');
     return { success: true };
   } catch (error) {
-    console.error(`[ClaimsAction] Failed to update economics for ${claimId}:`, error);
+    logger.error(`[ClaimsAction] Failed to update economics for ${claimId}:`, error);
     return { success: false, error: 'Database update failed' };
   }
 }

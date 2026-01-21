@@ -2,10 +2,8 @@
 
 import { OrganizationSwitcher, UserButton } from '@clerk/nextjs';
 import Link from 'next/link';
-import { useLocale } from 'next-intl';
 
 import { ActiveLink } from '@/components/ActiveLink';
-import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { ToggleMenuButton } from '@/components/ToggleMenuButton';
 import {
   DropdownMenu,
@@ -15,7 +13,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { Logo } from '@/templates/Logo';
-import { getI18nPath } from '@/utils/Helpers';
 
 export const DashboardHeader = (props: {
   menu: {
@@ -23,15 +20,12 @@ export const DashboardHeader = (props: {
     label: string;
   }[];
 }) => {
-  const locale = useLocale();
-
   return (
     <>
       <div className="flex items-center">
         <Link href="/dashboard" className="max-sm:hidden">
           <Logo />
         </Link>
-
         <svg
           className="size-8 stroke-muted-foreground max-sm:hidden"
           xmlns="http://www.w3.org/2000/svg"
@@ -46,10 +40,7 @@ export const DashboardHeader = (props: {
 
         <OrganizationSwitcher
           organizationProfileMode="navigation"
-          organizationProfileUrl={getI18nPath(
-            '/dashboard/organization-profile',
-            locale,
-          )}
+          organizationProfileUrl="/dashboard/organization-profile"
           afterCreateOrganizationUrl="/dashboard"
           hidePersonal
           skipInvitationScreen
@@ -91,10 +82,6 @@ export const DashboardHeader = (props: {
           </li>
 
           {/* PRO: Dark mode toggle button */}
-
-          <li data-fade>
-            <LocaleSwitcher />
-          </li>
 
           <li>
             <Separator orientation="vertical" className="h-4" />

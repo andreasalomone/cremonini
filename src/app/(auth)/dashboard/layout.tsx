@@ -1,53 +1,44 @@
 import { auth } from '@clerk/nextjs/server';
-import { getTranslations } from 'next-intl/server';
 
 import { DashboardHeader } from '@/features/dashboard/DashboardHeader';
 import { Env } from '@/libs/Env';
 
-export async function generateMetadata(props: { params: { locale: string } }) {
-  const t = await getTranslations({
-    locale: props.params.locale,
-    namespace: 'Dashboard',
-  });
-
-  return {
-    title: t('meta_title'),
-    description: t('meta_description'),
-  };
-}
+export const metadata = {
+  title: 'Dashboard - Cremonini Claims',
+  description: 'Pannello di controllo gestione sinistri.',
+};
 
 export default async function DashboardLayout(props: { children: React.ReactNode }) {
-  const t = await getTranslations('DashboardLayout');
   const { orgId } = await auth();
   const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
 
   const menuItems = [
     {
       href: '/dashboard',
-      label: t('home'),
+      label: 'Home',
     },
     {
       href: '/dashboard/claims',
-      label: t('claims'),
+      label: 'Sinistri',
     },
     {
       href: '/dashboard/procura',
-      label: t('procura'),
+      label: 'Procura',
     },
     {
       href: '/dashboard/organization-profile/organization-members',
-      label: t('members'),
+      label: 'Utenti',
     },
     {
       href: '/dashboard/organization-profile',
-      label: t('settings'),
+      label: 'Impostazioni',
     },
   ];
 
   if (isSuperAdmin) {
     menuItems.push({
       href: '/dashboard/reports',
-      label: t('reports'),
+      label: 'Reportistica',
     });
   }
 
