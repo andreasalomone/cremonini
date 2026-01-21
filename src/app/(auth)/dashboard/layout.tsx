@@ -29,10 +29,6 @@ export default async function DashboardLayout(props: { children: React.ReactNode
       href: '/dashboard/organization-profile/organization-members',
       label: 'Utenti',
     },
-    {
-      href: '/dashboard/organization-profile',
-      label: 'Impostazioni',
-    },
   ];
 
   if (isSuperAdmin) {

@@ -23,7 +23,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-        <StatsGrid {...stats} />
+        <StatsGrid {...stats} className="col-span-full lg:col-span-4" />
         <ClaimsOverview open={stats.activeClaims} total={stats.totalClaims} />
       </div>
 

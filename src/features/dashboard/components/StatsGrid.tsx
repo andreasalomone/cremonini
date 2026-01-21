@@ -5,6 +5,7 @@ import React from 'react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ECONOMICS } from '@/constants/Economics';
+import { cn } from '@/utils/Helpers';
 
 type StatsGridProps = {
   totalClaims: number;
@@ -13,6 +14,7 @@ type StatsGridProps = {
   totalValue: number;
   totalRecovered: number;
   aggregateDeductibleResidual: number;
+  className?: string;
 };
 
 export const StatsGrid = ({
@@ -22,6 +24,7 @@ export const StatsGrid = ({
   totalValue,
   totalRecovered,
   aggregateDeductibleResidual,
+  className,
 }: StatsGridProps) => {
   const isDeductibleLow = aggregateDeductibleResidual < (ECONOMICS.ANNUAL_AGGREGATE_DEDUCTIBLE * ECONOMICS.DEDUCTIBLE_LOW_THRESHOLD);
 
@@ -67,7 +70,7 @@ export const StatsGrid = ({
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className={cn('grid gap-4 md:grid-cols-2 lg:grid-cols-3', className)}>
       {stats.map(stat => (
         <Card
           key={stat.title}

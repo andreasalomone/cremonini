@@ -16,6 +16,6 @@ export const Logo = (props: {
       <rect x="15" y="4" width="6" height="16" rx="1" />
       <path d="M4 20h14" />
     </svg>
-    {!props.isTextHidden && 'Salomone & Associati'}
+    {!props.isTextHidden && 'Cremonini.pro'}
   </div>
 );
