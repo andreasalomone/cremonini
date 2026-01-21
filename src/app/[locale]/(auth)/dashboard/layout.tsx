@@ -1,5 +1,4 @@
 import { auth } from '@clerk/nextjs/server';
-import { useTranslations } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
 
 import { DashboardHeader } from '@/features/dashboard/DashboardHeader';
@@ -18,7 +17,7 @@ export async function generateMetadata(props: { params: { locale: string } }) {
 }
 
 export default async function DashboardLayout(props: { children: React.ReactNode }) {
-  const t = useTranslations('DashboardLayout');
+  const t = await getTranslations('DashboardLayout');
   const { orgId } = await auth();
   const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
 

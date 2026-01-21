@@ -1,3 +1,5 @@
+'use client';
+
 import { AlertCircle, Archive, Banknote, ClipboardList, ShieldAlert, TrendingUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import React from 'react';

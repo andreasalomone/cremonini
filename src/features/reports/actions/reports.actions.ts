@@ -4,7 +4,6 @@ import { auth } from '@clerk/nextjs/server';
 import { and, count, eq, gte, lte, sql, sum } from 'drizzle-orm';
 
 import { db } from '@/libs/DB';
-import { parseCurrencySql } from '@/libs/DBUtils';
 import { Env } from '@/libs/Env';
 import { claimsSchema } from '@/models/Schema';
 
@@ -51,27 +50,32 @@ export async function getReportBySociety(
     conditions.push(lte(claimsSchema.createdAt, new Date(endDate)));
   }
 
-  const result = await db
-    .select({
-      orgId: claimsSchema.orgId,
-      total: count(),
-      estimated: sum(parseCurrencySql(claimsSchema.estimatedValue)),
-      recovered: sum(parseCurrencySql(claimsSchema.recoveredAmount)),
-    })
-    .from(claimsSchema)
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .groupBy(claimsSchema.orgId);
+  try {
+    const result = await db
+      .select({
+        orgId: claimsSchema.orgId,
+        total: count(),
+        estimated: sum(claimsSchema.estimatedValue),
+        recovered: sum(claimsSchema.recoveredAmount),
+      })
+      .from(claimsSchema)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .groupBy(claimsSchema.orgId);
 
-  return result.map(row => ({
-    orgId: row.orgId,
-    totalClaims: Number(row.total ?? 0),
-    estimatedTotal: Number(row.estimated ?? 0),
-    recoveredTotal: Number(row.recovered ?? 0),
-    recoveryRate:
-      Number(row.estimated ?? 0) > 0
-        ? Number(row.recovered ?? 0) / Number(row.estimated ?? 0)
-        : 0,
-  }));
+    return result.map(row => ({
+      orgId: row.orgId,
+      totalClaims: Number(row.total ?? 0),
+      estimatedTotal: Number(row.estimated ?? 0),
+      recoveredTotal: Number(row.recovered ?? 0),
+      recoveryRate:
+        Number(row.estimated ?? 0) > 0
+          ? Number(row.recovered ?? 0) / Number(row.estimated ?? 0)
+          : 0,
+    }));
+  } catch (error) {
+    console.error('[ReportsAction] getReportBySociety failed:', error);
+    return [];
+  }
 }
 
 /**
@@ -105,24 +109,29 @@ export async function getReportByPeriod(
     conditions.push(eq(claimsSchema.orgId, targetOrgId));
   }
 
-  const result = await db
-    .select({
-      month: sql<string>`TO_CHAR(${claimsSchema.createdAt}, 'YYYY-MM')`,
-      total: count(),
-      estimated: sum(parseCurrencySql(claimsSchema.estimatedValue)),
-      recovered: sum(parseCurrencySql(claimsSchema.recoveredAmount)),
-    })
-    .from(claimsSchema)
-    .where(and(...conditions))
-    .groupBy(sql`TO_CHAR(${claimsSchema.createdAt}, 'YYYY-MM')`)
-    .orderBy(sql`TO_CHAR(${claimsSchema.createdAt}, 'YYYY-MM')`);
+  try {
+    const result = await db
+      .select({
+        month: sql<string>`TO_CHAR(${claimsSchema.createdAt}, 'YYYY-MM')`,
+        total: count(),
+        estimated: sum(claimsSchema.estimatedValue),
+        recovered: sum(claimsSchema.recoveredAmount),
+      })
+      .from(claimsSchema)
+      .where(and(...conditions))
+      .groupBy(sql`TO_CHAR(${claimsSchema.createdAt}, 'YYYY-MM')`)
+      .orderBy(sql`TO_CHAR(${claimsSchema.createdAt}, 'YYYY-MM')`);
 
-  return result.map(row => ({
-    period: row.month,
-    totalClaims: Number(row.total ?? 0),
-    estimatedTotal: Number(row.estimated ?? 0),
-    recoveredTotal: Number(row.recovered ?? 0),
-  }));
+    return result.map(row => ({
+      period: row.month,
+      totalClaims: Number(row.total ?? 0),
+      estimatedTotal: Number(row.estimated ?? 0),
+      recoveredTotal: Number(row.recovered ?? 0),
+    }));
+  } catch (error) {
+    console.error('[ReportsAction] getReportByPeriod failed:', error);
+    return [];
+  }
 }
 
 /**
@@ -149,37 +158,47 @@ export async function getRecoveryReport(startDate?: string, endDate?: string) {
     conditions.push(lte(claimsSchema.createdAt, new Date(endDate)));
   }
 
-  const result = await db
-    .select({
-      status: claimsSchema.status,
-      total: count(),
-      estimated: sum(parseCurrencySql(claimsSchema.estimatedValue)),
-      recovered: sum(parseCurrencySql(claimsSchema.recoveredAmount)),
-    })
-    .from(claimsSchema)
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .groupBy(claimsSchema.status);
+  try {
+    const result = await db
+      .select({
+        status: claimsSchema.status,
+        total: count(),
+        estimated: sum(claimsSchema.estimatedValue),
+        recovered: sum(claimsSchema.recoveredAmount),
+      })
+      .from(claimsSchema)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .groupBy(claimsSchema.status);
 
-  // Group into categories
-  const fullRecovery = result.filter(r => r.status === 'FULL_RECOVERY');
-  const partialRecovery = result.filter(r => r.status === 'PARTIAL_RECOVERY');
-  const noRecovery = result.filter(r => r.status === 'CLOSED');
-  const pending = result.filter(r =>
-    r.status !== 'CLOSED'
-    && r.status !== 'FULL_RECOVERY'
-    && r.status !== 'PARTIAL_RECOVERY',
-  );
+    // Group into categories
+    const fullRecovery = result.filter(r => r.status === 'FULL_RECOVERY');
+    const partialRecovery = result.filter(r => r.status === 'PARTIAL_RECOVERY');
+    const noRecovery = result.filter(r => r.status === 'CLOSED');
+    const pending = result.filter(r =>
+      r.status !== 'CLOSED'
+      && r.status !== 'FULL_RECOVERY'
+      && r.status !== 'PARTIAL_RECOVERY',
+    );
 
-  const sumUp = (rows: typeof result) => ({
-    count: rows.reduce((acc, r) => acc + Number(r.total ?? 0), 0),
-    estimated: rows.reduce((acc, r) => acc + Number(r.estimated ?? 0), 0),
-    recovered: rows.reduce((acc, r) => acc + Number(r.recovered ?? 0), 0),
-  });
+    const sumUp = (rows: typeof result) => ({
+      count: rows.reduce((acc, r) => acc + Number(r.total ?? 0), 0),
+      estimated: rows.reduce((acc, r) => acc + Number(r.estimated ?? 0), 0),
+      recovered: rows.reduce((acc, r) => acc + Number(r.recovered ?? 0), 0),
+    });
 
-  return {
-    fullRecovery: sumUp(fullRecovery),
-    partialRecovery: sumUp(partialRecovery),
-    noRecovery: sumUp(noRecovery),
-    pending: sumUp(pending),
-  };
+    return {
+      fullRecovery: sumUp(fullRecovery),
+      partialRecovery: sumUp(partialRecovery),
+      noRecovery: sumUp(noRecovery),
+      pending: sumUp(pending),
+    };
+  } catch (error) {
+    console.error('[ReportsAction] getRecoveryReport failed:', error);
+    return {
+      fullRecovery: { count: 0, estimated: 0, recovered: 0 },
+      partialRecovery: { count: 0, estimated: 0, recovered: 0 },
+      noRecovery: { count: 0, estimated: 0, recovered: 0 },
+      pending: { count: 0, estimated: 0, recovered: 0 },
+    };
+  }
 }

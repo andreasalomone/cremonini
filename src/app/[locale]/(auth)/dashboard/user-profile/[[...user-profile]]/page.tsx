@@ -1,3 +1,5 @@
+'use client';
+
 import { UserProfile } from '@clerk/nextjs';
 import { useTranslations } from 'next-intl';
 

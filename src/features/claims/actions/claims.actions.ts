@@ -48,22 +48,32 @@ const sanitizeCurrency = (val?: string): string | null => {
  * ✅ AUDIT FIX: Uses query API with relations for N+1 prevention
  */
 export async function getClaims() {
-  const { orgId } = await auth();
+  try {
+    const { orgId } = await auth();
 
-  if (!orgId) {
+    if (!orgId) {
+      console.warn('[ClaimsAction] No orgId found in auth context');
+      return [];
+    }
+
+    // --- GOD MODE LOGIC ---
+    const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
+    console.log(`[ClaimsAction] Fetching claims for orgId: ${orgId} (isSuperAdmin: ${isSuperAdmin})`);
+
+    // ✅ AUDIT FIX: Use query API with relations instead of select()
+    const results = await db.query.claimsSchema.findMany({
+      where: isSuperAdmin ? undefined : eq(claimsSchema.orgId, orgId),
+      with: { documents: true },
+      orderBy: desc(claimsSchema.createdAt),
+      limit: isSuperAdmin ? 100 : undefined,
+    });
+
+    console.log(`[ClaimsAction] Successfully fetched ${results.length} claims`);
+    return results;
+  } catch (error) {
+    console.error('[ClaimsAction] getClaims failed:', error);
     return [];
   }
-
-  // --- GOD MODE LOGIC ---
-  const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
-
-  // ✅ AUDIT FIX: Use query API with relations instead of select()
-  return await db.query.claimsSchema.findMany({
-    where: isSuperAdmin ? undefined : eq(claimsSchema.orgId, orgId),
-    with: { documents: true },
-    orderBy: desc(claimsSchema.createdAt),
-    limit: isSuperAdmin ? 100 : undefined,
-  });
 }
 
 export async function createClaim(data: CreateClaimInput) {

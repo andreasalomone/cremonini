@@ -8,8 +8,11 @@ import { StatsGrid } from '@/features/dashboard/components/StatsGrid';
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
+  console.log('[DashboardPage] Starting data fetch...');
   const stats = await getDashboardStats();
+  console.log('[DashboardPage] Stats fetched successfully');
   const claims = await getClaims();
+  console.log('[DashboardPage] Claims fetched successfully');
 
   return (
     <div className="flex flex-col gap-8 p-8">
