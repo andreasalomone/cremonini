@@ -27,21 +27,20 @@ export const DocumentUploader = ({ claimId, onSuccess }: DocumentUploaderProps) 
   const [docType, setDocType] = useState<NewDocument['type']>('CMR_DDT');
   const [isPending, startTransition] = useTransition();
 
-  const handleUploadComplete = (res: { url: string }[]) => {
-    const url = res?.[0]?.url;
-    if (!url) {
+  const handleUploadComplete = (res: { path: string }[]) => {
+    const path = res?.[0]?.path;
+    if (!path) {
       return;
     }
 
     startTransition(async () => {
       try {
-        await addDocument(claimId, docType, url);
+        await addDocument(claimId, docType, path);
         toast.success('Documento caricato');
         if (onSuccess) {
           onSuccess();
         }
       } catch (error) {
-        // ✅ AUDIT FIX: Fail loud - show user feedback
         console.error('[DocumentUploader] Failed:', error);
         toast.error('Errore durante il caricamento del documento');
       }
@@ -70,8 +69,8 @@ export const DocumentUploader = ({ claimId, onSuccess }: DocumentUploaderProps) 
       </div>
 
       <FileUploader
-        endpoint="pdfUploader"
-        onClientUploadComplete={handleUploadComplete}
+        folder="documents"
+        onUploadComplete={handleUploadComplete}
         onUploadError={(error) => {
           console.error('Upload error:', error);
         }}

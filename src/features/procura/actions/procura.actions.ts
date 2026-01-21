@@ -55,6 +55,7 @@ export async function upsertProcura(
       .update(powerOfAttorneySchema)
       .set({
         documentUrl: data.documentUrl,
+        documentPath: data.documentPath,
         expiryDate: data.expiryDate,
         saAuthorizedToAct: data.saAuthorizedToAct ?? false,
         saAuthorizedToCollect: data.saAuthorizedToCollect ?? false,
@@ -66,6 +67,7 @@ export async function upsertProcura(
     await db.insert(powerOfAttorneySchema).values({
       orgId,
       documentUrl: data.documentUrl,
+      documentPath: data.documentPath,
       expiryDate: data.expiryDate,
       saAuthorizedToAct: data.saAuthorizedToAct ?? false,
       saAuthorizedToCollect: data.saAuthorizedToCollect ?? false,

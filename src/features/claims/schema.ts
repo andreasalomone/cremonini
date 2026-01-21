@@ -14,7 +14,7 @@ export const CreateClaimSchema = z.object({
   claimedAmount: z.string().optional(),
   recoveredAmount: z.string().optional(),
   description: z.string().optional(),
-  documentUrl: z.string().optional(),
+  documentPath: z.string().optional(),
 });
 
 export type CreateClaimFormValues = z.infer<typeof CreateClaimSchema>;

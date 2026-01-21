@@ -86,6 +86,7 @@ export const claimsSchema = pgTable('claims', {
   hasThirdPartyResponsible: boolean('has_third_party').default(false), // Presenza terzi responsabili
   description: text('description'),
   documentUrl: text('document_url'), // Legacy single doc (kept for backwards compat)
+  documentPath: text('document_path'), // Supabase Storage path
 
   // Economic fields
   estimatedValue: decimal('estimated_value', { precision: 15, scale: 2 }), // Danno stimato
@@ -139,7 +140,8 @@ export const documentsSchema = pgTable('documents', {
     .$defaultFn(() => crypto.randomUUID()),
   claimId: text('claim_id').notNull(),
   type: documentTypeEnum('type').notNull(),
-  url: text('url').notNull(),
+  url: text('url').notNull(), // Legacy (kept for backwards compat)
+  path: text('path'), // Supabase Storage path
   filename: text('filename'),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 });
@@ -155,7 +157,8 @@ export const powerOfAttorneySchema = pgTable('power_of_attorney', {
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   orgId: text('org_id').notNull(),
-  documentUrl: text('document_url').notNull(),
+  documentUrl: text('document_url').notNull(), // Legacy (kept for backwards compat)
+  documentPath: text('document_path'), // Supabase Storage path
   expiryDate: date('expiry_date'),
   saAuthorizedToAct: boolean('sa_authorized_to_act').default(false),
   saAuthorizedToCollect: boolean('sa_authorized_to_collect').default(false),

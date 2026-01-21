@@ -21,7 +21,7 @@ export type CreateClaimInput = {
   carrierName?: string;
   estimatedValue?: string;
   description?: string;
-  documentUrl?: string;
+  documentPath?: string;
 };
 
 // Helpers
@@ -89,7 +89,7 @@ export async function createClaim(data: CreateClaimInput) {
     carrierName: data.carrierName,
     estimatedValue: sanitizeCurrency(data.estimatedValue),
     description: data.description,
-    documentUrl: data.documentUrl,
+    documentPath: data.documentPath,
     reserveDeadline: formatDateNullable(reserveDeadline),
     prescriptionDeadline: formatDateNullable(prescriptionDeadline),
   };

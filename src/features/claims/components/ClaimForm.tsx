@@ -265,17 +265,17 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
         {/* File Upload */}
         <FormField
           control={form.control}
-          name="documentUrl"
+          name="documentPath"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Documento di supporto (PDF/Immagine)</FormLabel>
               <FormControl>
                 <FileUploader
-                  endpoint="pdfUploader"
-                  onClientUploadComplete={(res) => {
-                    const url = res?.[0]?.url;
-                    if (url) {
-                      field.onChange(url);
+                  folder="claims"
+                  onUploadComplete={(res) => {
+                    const path = res?.[0]?.path;
+                    if (path) {
+                      field.onChange(path);
                     }
                   }}
                   onUploadError={(error) => {

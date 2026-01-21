@@ -29,7 +29,7 @@ import type { PowerOfAttorney } from '@/models/Schema';
 import { cn } from '@/utils/Helpers';
 
 const ProcuraFormSchema = z.object({
-  documentUrl: z.string().min(1, 'Documento obbligatorio'),
+  documentPath: z.string().min(1, 'Documento obbligatorio'),
   expiryDate: z.date().optional(),
   saAuthorizedToAct: z.boolean().default(false),
   saAuthorizedToCollect: z.boolean().default(false),
@@ -49,7 +49,7 @@ export const ProcuraForm = ({ existingProcura, onSuccess }: ProcuraFormProps) =>
   const form = useForm<ProcuraFormValues>({
     resolver: zodResolver(ProcuraFormSchema),
     defaultValues: {
-      documentUrl: existingProcura?.documentUrl ?? '',
+      documentPath: existingProcura?.documentPath ?? existingProcura?.documentUrl ?? '',
       expiryDate: existingProcura?.expiryDate
         ? new Date(existingProcura.expiryDate)
         : undefined,
@@ -63,7 +63,8 @@ export const ProcuraForm = ({ existingProcura, onSuccess }: ProcuraFormProps) =>
     try {
       const formatDate = (d: Date): string => d.toISOString().split('T')[0]!;
       await upsertProcura({
-        documentUrl: data.documentUrl,
+        documentUrl: data.documentPath, // Keep for backwards compat
+        documentPath: data.documentPath,
         expiryDate: data.expiryDate ? formatDate(data.expiryDate) : null,
         saAuthorizedToAct: data.saAuthorizedToAct,
         saAuthorizedToCollect: data.saAuthorizedToCollect,
@@ -86,7 +87,7 @@ export const ProcuraForm = ({ existingProcura, onSuccess }: ProcuraFormProps) =>
       await deleteProcura();
       toast.success('Procura eliminata');
       form.reset({
-        documentUrl: '',
+        documentPath: '',
         expiryDate: undefined,
         saAuthorizedToAct: false,
         saAuthorizedToCollect: false,
@@ -124,17 +125,17 @@ export const ProcuraForm = ({ existingProcura, onSuccess }: ProcuraFormProps) =>
           {/* Document Upload */}
           <FormField
             control={form.control}
-            name="documentUrl"
+            name="documentPath"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Documento Procura *</FormLabel>
                 <FormControl>
                   <FileUploader
-                    endpoint="pdfUploader"
-                    onClientUploadComplete={(res) => {
-                      const url = res?.[0]?.url;
-                      if (url) {
-                        field.onChange(url);
+                    folder="procura"
+                    onUploadComplete={(res) => {
+                      const path = res?.[0]?.path;
+                      if (path) {
+                        field.onChange(path);
                       }
                     }}
                     onUploadError={(error) => {
@@ -144,14 +145,9 @@ export const ProcuraForm = ({ existingProcura, onSuccess }: ProcuraFormProps) =>
                   />
                 </FormControl>
                 {field.value && (
-                  <a
-                    href={field.value}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-blue-600 underline"
-                  >
-                    Visualizza documento caricato
-                  </a>
+                  <div className="text-sm text-green-600">
+                    ✓ Documento caricato
+                  </div>
                 )}
                 <FormMessage />
               </FormItem>

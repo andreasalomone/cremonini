@@ -16,7 +16,7 @@ import { claimsSchema, documentsSchema } from '@/models/Schema';
 export async function addDocument(
   claimId: string,
   type: NewDocument['type'],
-  url: string,
+  path: string,
   filename?: string,
 ) {
   const { orgId, userId } = await auth();
@@ -42,7 +42,8 @@ export async function addDocument(
   const [newDoc] = await db.insert(documentsSchema).values({
     claimId,
     type,
-    url,
+    url: path, // Keep url populated for backwards compat
+    path,
     filename,
   }).returning();
 
