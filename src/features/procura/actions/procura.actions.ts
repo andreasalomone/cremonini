@@ -1,6 +1,6 @@
 'use server';
 
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 import { eq, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
@@ -199,4 +199,58 @@ export async function getPoaStatusByOrgIds(orgIds: string[]): Promise<Map<string
   }
 
   return statusMap;
+}
+
+export type OrganizationProcuraStatus = {
+  id: string;
+  name: string;
+  slug: string | null;
+  imageUrl: string;
+  procura: PoaStatus;
+};
+
+/**
+ * Super Admin Action: Get all organizations with their Procura status.
+ * Fetches Org details from Clerk and Procura status from DB.
+ */
+export async function getAllOrganizationsWithProcuraStatus(): Promise<OrganizationProcuraStatus[]> {
+  const { orgId } = await auth();
+
+  if (!orgId) {
+    throw new Error('Unauthorized');
+  }
+
+  const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
+
+  if (!isSuperAdmin) {
+    throw new Error('Access denied: Admin only');
+  }
+
+  const client = await clerkClient();
+
+  // Fetch all organizations from Clerk (limit 100 for now, add pagination if needed later)
+  // We use this to get the names which are not in our DB
+  const clerkOrgsResponse = await client.organizations.getOrganizationList({
+    limit: 100,
+  });
+
+  const clerkOrgs = clerkOrgsResponse.data;
+  const orgIds = clerkOrgs.map(org => org.id);
+
+  // Get Procura status for all these orgs
+  const statusMap = await getPoaStatusByOrgIds(orgIds);
+
+  // Combine data
+  return clerkOrgs.map(org => ({
+    id: org.id,
+    name: org.name,
+    slug: org.slug,
+    imageUrl: org.imageUrl,
+    procura: statusMap.get(org.id) ?? {
+      hasPoA: false,
+      isExpired: false,
+      saAuthorizedToAct: false,
+      saAuthorizedToCollect: false,
+    },
+  }));
 }

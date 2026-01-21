@@ -1,8 +1,10 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 
-import { getProcura } from '@/features/procura/actions/procura.actions';
+import { getAllOrganizationsWithProcuraStatus, getProcura } from '@/features/procura/actions/procura.actions';
+import { ProcuraAdminTable } from '@/features/procura/components/ProcuraAdminTable';
 import { ProcuraForm } from '@/features/procura/components/ProcuraForm';
+import { Env } from '@/libs/Env';
 
 // Prevent static pre-rendering - this page requires runtime database access
 export const dynamic = 'force-dynamic';
@@ -12,6 +14,25 @@ export default async function ProcuraPage() {
 
   if (!orgId) {
     redirect('/sign-in');
+  }
+
+  const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
+
+  if (isSuperAdmin) {
+    const allOrganizations = await getAllOrganizationsWithProcuraStatus();
+
+    return (
+      <div className="container mx-auto py-10">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold tracking-tight">Gestione Procure (Admin)</h1>
+          <p className="text-muted-foreground">
+            Monitoraggio stato procure di tutte le società.
+          </p>
+        </div>
+
+        <ProcuraAdminTable organizations={allOrganizations} />
+      </div>
+    );
   }
 
   const existingProcura = await getProcura();
