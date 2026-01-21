@@ -11,6 +11,9 @@ import {
 } from '@/features/reports/components';
 import { Env } from '@/libs/Env';
 
+// Prevent static pre-rendering - this page requires runtime database access
+export const dynamic = 'force-dynamic';
+
 export default async function ReportsPage() {
   const { orgId } = await auth();
 

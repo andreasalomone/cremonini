@@ -10,6 +10,9 @@ import { db } from '@/libs/DB';
 import { Env } from '@/libs/Env';
 import { claimsSchema } from '@/models/Schema';
 
+// Prevent static pre-rendering - this route requires runtime database access
+export const dynamic = 'force-dynamic';
+
 // Initialize Resend
 const resend = new Resend(Env.RESEND_API_KEY);
 

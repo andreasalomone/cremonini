@@ -13,6 +13,9 @@ import { getClaims } from '@/features/claims/actions/claims.actions';
 import { ClaimForm } from '@/features/claims/components/ClaimForm';
 import { ClaimsTable } from '@/features/claims/components/ClaimsTable';
 
+// Prevent static pre-rendering - this page requires runtime database access
+export const dynamic = 'force-dynamic';
+
 export default async function ClaimsPage() {
   const claims = await getClaims();
 

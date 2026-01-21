@@ -4,6 +4,9 @@ import { getDashboardStats } from '@/features/dashboard/actions/dashboard.action
 import { ClaimsOverview } from '@/features/dashboard/components/ClaimsOverview';
 import { StatsGrid } from '@/features/dashboard/components/StatsGrid';
 
+// Prevent static pre-rendering - this page requires runtime database access
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardPage() {
   const stats = await getDashboardStats();
   const claims = await getClaims();

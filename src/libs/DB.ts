@@ -15,7 +15,13 @@ import { Env } from './Env';
 let client;
 let drizzle;
 
-if (process.env.NEXT_PHASE !== PHASE_PRODUCTION_BUILD && Env.DATABASE_URL) {
+// During production build, skip all database initialization entirely.
+// This prevents PGlite from trying to handle multi-statement migrations.
+// Dynamic pages marked with `force-dynamic` won't be pre-rendered anyway.
+if (process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD) {
+  // Export a placeholder that will never be called during build
+  drizzle = null as unknown as ReturnType<typeof drizzlePg<typeof schema>>;
+} else if (Env.DATABASE_URL) {
   client = new Client({
     connectionString: Env.DATABASE_URL,
   });

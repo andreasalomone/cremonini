@@ -4,6 +4,9 @@ import { redirect } from 'next/navigation';
 import { getProcura } from '@/features/procura/actions/procura.actions';
 import { ProcuraForm } from '@/features/procura/components/ProcuraForm';
 
+// Prevent static pre-rendering - this page requires runtime database access
+export const dynamic = 'force-dynamic';
+
 export default async function ProcuraPage() {
   const { orgId } = await auth();
 
