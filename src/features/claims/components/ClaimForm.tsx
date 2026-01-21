@@ -137,6 +137,8 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
                     onSelect={field.onChange}
                     disabled={date =>
                       date > new Date() || date < new Date('1900-01-01')}
+                    fromYear={1900}
+                    toYear={new Date().getFullYear()}
                     initialFocus
                   />
                 </PopoverContent>

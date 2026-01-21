@@ -183,6 +183,8 @@ export const ProcuraForm = ({ existingProcura, onSuccess }: ProcuraFormProps) =>
                       mode="single"
                       selected={field.value}
                       onSelect={field.onChange}
+                      fromYear={1900}
+                      toYear={new Date().getFullYear() + 10}
                       initialFocus
                     />
                   </PopoverContent>

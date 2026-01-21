@@ -64,7 +64,7 @@ function Calendar({
   className,
   classNames,
   showOutsideDays = true,
-  captionLayout = 'label',
+  captionLayout = 'dropdown',
   buttonVariant = 'ghost',
   formatters,
   components,
@@ -123,7 +123,7 @@ function Calendar({
           defaultClassNames.dropdown_root,
         ),
         dropdown: cn(
-          'bg-popover absolute inset-0 opacity-0',
+          'bg-transparent h-full w-full p-1 focus:outline-none',
           defaultClassNames.dropdown,
         ),
         caption_label: cn(
@@ -178,6 +178,8 @@ function Calendar({
         Chevron: CalendarChevron,
         DayButton: CalendarDayButton,
         WeekNumber: CalendarWeekNumber,
+        PreviousMonthButton: CalendarPreviousMonthButton,
+        NextMonthButton: CalendarNextMonthButton,
         ...components,
       }}
       {...props}
@@ -205,6 +207,7 @@ function CalendarDayButton({
       ref={ref}
       variant="ghost"
       size="icon"
+      type="button"
       data-day={day.date.toLocaleDateString()}
       data-selected-single={
         modifiers.selected
@@ -222,6 +225,32 @@ function CalendarDayButton({
       )}
       {...props}
     />
+  );
+}
+
+function CalendarPreviousMonthButton({ className, ...props }: React.ComponentProps<typeof Button>) {
+  return (
+    <Button
+      {...props}
+      type="button"
+      variant="ghost"
+      className={cn('h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100', className)}
+    >
+      <ChevronLeftIcon className="size-4" />
+    </Button>
+  );
+}
+
+function CalendarNextMonthButton({ className, ...props }: React.ComponentProps<typeof Button>) {
+  return (
+    <Button
+      {...props}
+      type="button"
+      variant="ghost"
+      className={cn('h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100', className)}
+    >
+      <ChevronRightIcon className="size-4" />
+    </Button>
   );
 }
 
