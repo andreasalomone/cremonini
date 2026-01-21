@@ -16,7 +16,7 @@ export default async function DashboardPage() {
   logger.info('[DashboardPage] Claims fetched successfully');
 
   return (
-    <div className="flex flex-col gap-8 p-8">
+    <div className="flex flex-col gap-8 p-4 md:p-8">
       <div className="space-y-1">
         <h1 className="text-3xl font-bold tracking-tight">Command Center</h1>
         <p className="text-muted-foreground">Monitor real-time claim metrics and deadlines.</p>
@@ -24,7 +24,11 @@ export default async function DashboardPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         <StatsGrid {...stats} className="col-span-full lg:col-span-4" />
-        <ClaimsOverview open={stats.activeClaims} total={stats.totalClaims} />
+        <ClaimsOverview
+          open={stats.activeClaims}
+          total={stats.totalClaims}
+          className="col-span-full lg:col-span-3"
+        />
       </div>
 
       <div className="space-y-4">

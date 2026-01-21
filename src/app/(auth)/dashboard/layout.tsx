@@ -39,19 +39,19 @@ export default async function DashboardLayout(props: { children: React.ReactNode
   }
 
   return (
-    <>
-      <div className="shadow-md">
-        <div className="mx-auto flex max-w-screen-xl items-center justify-between px-3 py-4">
+    <div className="flex min-h-screen flex-col bg-muted">
+      <header className="sticky top-0 z-50 bg-background shadow-md">
+        <div className="mx-auto flex max-w-screen-xl items-center justify-between p-4">
           <DashboardHeader menu={menuItems} />
         </div>
-      </div>
+      </header>
 
-      <div className="min-h-[calc(100vh-72px)] bg-muted">
-        <div className="mx-auto max-w-screen-xl px-3 pb-16 pt-6">
+      <main className="flex-1">
+        <div className="mx-auto max-w-screen-xl px-4 pb-16 pt-6">
           {props.children}
         </div>
-      </div>
-    </>
+      </main>
+    </div>
   );
 }
 

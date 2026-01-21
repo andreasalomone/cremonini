@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { FileUploader } from '@/components/FileUploader';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Form,
   FormControl,
@@ -211,11 +212,9 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
               <FormControl>
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={field.value}
-                  onChange={field.onChange}
-                  className="size-4 rounded border-gray-300"
+                  onCheckedChange={field.onChange}
                 />
               </FormControl>
               <div className="space-y-1 leading-none">

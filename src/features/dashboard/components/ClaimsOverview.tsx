@@ -9,13 +9,15 @@ import {
 } from 'recharts';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/utils/Helpers';
 
 type ClaimsOverviewProps = {
   open: number;
   total: number;
+  className?: string;
 };
 
-export const ClaimsOverview = ({ open, total }: ClaimsOverviewProps) => {
+export const ClaimsOverview = ({ open, total, className }: ClaimsOverviewProps) => {
   const closed = total - open;
   const data = [
     { name: 'Open', value: open, color: '#3b82f6' }, // blue-500
@@ -25,7 +27,7 @@ export const ClaimsOverview = ({ open, total }: ClaimsOverviewProps) => {
   const openPercentage = total > 0 ? (open / total) * 100 : 0;
 
   return (
-    <Card className="col-span-full lg:col-span-3">
+    <Card className={cn('col-span-full lg:col-span-3', className)}>
       <CardHeader>
         <CardTitle className="text-base font-medium">Claims Lifecycle</CardTitle>
       </CardHeader>

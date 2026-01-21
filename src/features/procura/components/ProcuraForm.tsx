@@ -106,7 +106,7 @@ export const ProcuraForm = ({ existingProcura, onSuccess }: ProcuraFormProps) =>
   return (
     <div className="rounded-lg border p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Procura alle liti</h2>
+        <h2 className="text-lg font-semibold">Procura</h2>
         {existingProcura && (
           <Button
             variant="destructive"

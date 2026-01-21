@@ -21,7 +21,7 @@ export default async function ProcuraPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Gestione Procura</h1>
         <p className="text-muted-foreground">
-          Carica e gestisci la procura alle liti per la tua società.
+          Carica e gestisci la procura ad S&A per la tua società.
         </p>
       </div>
 
@@ -35,7 +35,7 @@ export default async function ProcuraPage() {
             <h3 className="text-lg font-semibold">Informazioni sulla Procura</h3>
             <div className="mt-4 space-y-4 text-sm text-muted-foreground">
               <p>
-                La **Procura alle liti** è il documento con cui la società autorizza S&A ad agire legalmente e a incassare per conto della società.
+                La Procura è il documento con cui si autorizza S&A ad agire legalmente e ad incassare per conto della società.
               </p>
               <ul className="list-disc space-y-2 pl-4">
                 <li>Deve essere firmata dal legale rappresentante.</li>
