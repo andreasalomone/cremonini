@@ -36,7 +36,7 @@ export default async function ClaimsPage() {
               New Claim
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Open New Claim</DialogTitle>
               <DialogDescription>
