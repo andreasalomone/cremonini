@@ -4,7 +4,7 @@
  */
 export const ECONOMICS = {
   // Total aggregate deductible for the group per year
-  ANNUAL_AGGREGATE_DEDUCTIBLE: 500000.00,
+  ANNUAL_AGGREGATE_DEDUCTIBLE: 3500000,
 
   // Threshold for alerting when the deductible is low (10%)
   DEDUCTIBLE_LOW_THRESHOLD: 0.1,

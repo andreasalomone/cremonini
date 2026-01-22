@@ -1,14 +1,24 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@supabase/supabase-js';
 
+import { Env } from '@/libs/Env';
 import { logger } from '@/libs/Logger';
 
-const BUCKET = 'cremonini-docs';
+const BUCKET = Env.NEXT_PUBLIC_STORAGE_BUCKET_NAME;
 
-// Service role client - bypasses RLS, use only server-side
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+// Lazy-initialized Supabase client singleton
+// This prevents "supabaseUrl is required" errors during build
+let supabaseClient: SupabaseClient | null = null;
+
+function getSupabaseClient(): SupabaseClient {
+  if (!supabaseClient) {
+    supabaseClient = createClient(
+      Env.NEXT_PUBLIC_SUPABASE_URL,
+      Env.SUPABASE_SERVICE_ROLE_KEY,
+    );
+  }
+  return supabaseClient;
+}
 
 export type StorageFolder = 'claims' | 'documents' | 'procura';
 
@@ -46,7 +56,7 @@ export async function uploadFile(
   const ext = file.name.split('.').pop();
   const path = `${orgId}/${folder}/${crypto.randomUUID()}.${ext}`;
 
-  const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+  const { error } = await getSupabaseClient().storage.from(BUCKET).upload(path, file, {
     contentType: file.type,
     cacheControl: '3600',
   });
@@ -67,8 +77,8 @@ export async function getSignedUrl(
   path: string,
   expiresIn = 3600,
 ): Promise<string> {
-  const { data, error } = await supabase.storage
-    .from(BUCKET)
+  const { data, error } = await getSupabaseClient()
+    .storage.from(BUCKET)
     .createSignedUrl(path, expiresIn);
 
   if (error) {
@@ -82,7 +92,7 @@ export async function getSignedUrl(
  * Delete a file from storage
  */
 export async function deleteFile(path: string): Promise<void> {
-  const { error } = await supabase.storage.from(BUCKET).remove([path]);
+  const { error } = await getSupabaseClient().storage.from(BUCKET).remove([path]);
   if (error) {
     logger.error('[Storage] Delete failed', { path, error: error.message });
     throw error;
