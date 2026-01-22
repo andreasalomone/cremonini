@@ -1,17 +1,6 @@
-import { Plus } from 'lucide-react';
-
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { getClaims } from '@/features/claims/actions/claims.actions';
-import { ClaimForm } from '@/features/claims/components/ClaimForm';
 import { ClaimsTable } from '@/features/claims/components/ClaimsTable';
+import { NewClaimDialog } from '@/features/claims/components/NewClaimDialog';
 
 // Prevent static pre-rendering - this page requires runtime database access
 export const dynamic = 'force-dynamic';
@@ -29,23 +18,7 @@ export default async function ClaimsPage() {
           </p>
         </div>
 
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 size-4" />
-              New Claim
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Open New Claim</DialogTitle>
-              <DialogDescription>
-                Fill in the details below to open a new claim file.
-              </DialogDescription>
-            </DialogHeader>
-            <ClaimForm />
-          </DialogContent>
-        </Dialog>
+        <NewClaimDialog />
       </div>
 
       <ClaimsTable claims={claims} />

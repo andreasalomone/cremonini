@@ -35,7 +35,6 @@ import { createClaim } from '@/features/claims/actions/claims.actions';
 import type { CreateClaimFormValues } from '@/features/claims/schema';
 import { CreateClaimSchema } from '@/features/claims/schema';
 import { calculateDeadlines } from '@/libs/deadline-logic';
-import { cn } from '@/utils/Helpers';
 
 export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -123,7 +122,7 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
                       id="eventDate"
                       type="button"
                       data-empty={!field.value}
-                      className="data-[empty=true]:text-muted-foreground w-full justify-between text-left font-normal"
+                      className="w-full justify-between text-left font-normal data-[empty=true]:text-muted-foreground"
                     >
                       {field.value ? format(field.value, 'PPP') : <span>Seleziona data</span>}
                       <ChevronDownIcon />
@@ -149,11 +148,14 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
                 {deadlines && (
                   <FieldDescription className="mt-2 space-y-1 rounded-md bg-muted p-2 text-xs text-muted-foreground">
                     <p>
-                      📅 Scadenza Riserva:{' '}
+                      📅 Scadenza Riserva:
+                      {' '}
                       {deadlines.reserveDeadline ? format(deadlines.reserveDeadline, 'PPP') : 'N/A'}
                     </p>
                     <p>
-                      ⚖️ Prescrizione: {format(deadlines.prescriptionDeadline, 'PPP')}
+                      ⚖️ Prescrizione:
+                      {' '}
+                      {format(deadlines.prescriptionDeadline, 'PPP')}
                     </p>
                   </FieldDescription>
                 )}
