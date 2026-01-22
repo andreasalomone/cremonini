@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format } from 'date-fns';
-import { CalendarIcon, Loader2 } from 'lucide-react';
+import { ChevronDownIcon, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -11,6 +11,7 @@ import { FileUploader } from '@/components/FileUploader';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field';
 import {
   Form,
   FormControl,
@@ -38,6 +39,7 @@ import { cn } from '@/utils/Helpers';
 
 export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [eventDatePopoverOpen, setEventDatePopoverOpen] = useState(false);
 
   const form = useForm<CreateClaimFormValues>({
     resolver: zodResolver(CreateClaimSchema),
@@ -106,60 +108,59 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
         <FormField
           control={form.control}
           name="eventDate"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Data sinistro *</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
+          render={({ field }) => {
+            const errors = form.formState.errors.eventDate
+              ? [{ message: String(form.formState.errors.eventDate.message ?? '') }]
+              : undefined;
+
+            return (
+              <Field data-invalid={!!errors}>
+                <FieldLabel htmlFor="eventDate">Data sinistro *</FieldLabel>
+                <Popover open={eventDatePopoverOpen} onOpenChange={setEventDatePopoverOpen}>
+                  <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className={cn(
-                        'w-full pl-3 text-left font-normal',
-                        !field.value && 'text-muted-foreground',
-                      )}
+                      id="eventDate"
+                      type="button"
+                      data-empty={!field.value}
+                      className="data-[empty=true]:text-muted-foreground w-full justify-between text-left font-normal"
                     >
-                      {field.value
-                        ? (
-                            format(field.value, 'PPP')
-                          )
-                        : (
-                            <span>Seleziona data</span>
-                          )}
-                      <CalendarIcon className="ml-auto size-4 opacity-50" />
+                      {field.value ? format(field.value, 'PPP') : <span>Seleziona data</span>}
+                      <ChevronDownIcon />
                     </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={date =>
-                      date > new Date() || date < new Date('1900-01-01')}
-                    fromYear={1900}
-                    toYear={new Date().getFullYear()}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              {deadlines && (
-                <div className="mt-2 space-y-1 rounded-md bg-muted p-2 text-xs text-muted-foreground">
-                  <p>
-                    📅 Scadenza Riserva:
-                    {' '}
-                    {deadlines.reserveDeadline ? format(deadlines.reserveDeadline, 'PPP') : 'N/A'}
-                  </p>
-                  <p>
-                    ⚖️ Prescrizione:
-                    {' '}
-                    {format(deadlines.prescriptionDeadline, 'PPP')}
-                  </p>
-                </div>
-              )}
-              <FormMessage />
-            </FormItem>
-          )}
+                  </PopoverTrigger>
+                  <PopoverContent className="pointer-events-auto z-[9999] w-auto p-0" align="start">
+                    <Calendar
+                      captionLayout="label"
+                      mode="single"
+                      selected={field.value}
+                      onSelect={(date) => {
+                        field.onChange(date);
+                        if (date) {
+                          setEventDatePopoverOpen(false);
+                        }
+                      }}
+                      defaultMonth={field.value ?? undefined}
+                      disabled={date => date > new Date() || date < new Date('1900-01-01')}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                {deadlines && (
+                  <FieldDescription className="mt-2 space-y-1 rounded-md bg-muted p-2 text-xs text-muted-foreground">
+                    <p>
+                      📅 Scadenza Riserva:{' '}
+                      {deadlines.reserveDeadline ? format(deadlines.reserveDeadline, 'PPP') : 'N/A'}
+                    </p>
+                    <p>
+                      ⚖️ Prescrizione: {format(deadlines.prescriptionDeadline, 'PPP')}
+                    </p>
+                  </FieldDescription>
+                )}
+                <FieldError errors={errors} />
+              </Field>
+            );
+          }}
         />
 
         {/* Location - NEW REQUIRED FIELD */}
