@@ -31,8 +31,8 @@ import { cn } from '@/utils/Helpers';
 const ProcuraFormSchema = z.object({
   documentPath: z.string().min(1, 'Documento obbligatorio'),
   expiryDate: z.date().optional(),
-  saAuthorizedToAct: z.boolean().default(false),
-  saAuthorizedToCollect: z.boolean().default(false),
+  saAuthorizedToAct: z.boolean(),
+  saAuthorizedToCollect: z.boolean(),
 });
 
 type ProcuraFormValues = z.infer<typeof ProcuraFormSchema>;

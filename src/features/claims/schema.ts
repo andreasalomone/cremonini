@@ -3,11 +3,11 @@ import { z } from 'zod';
 export const CreateClaimSchema = z.object({
   type: z.enum(['TRANSPORT', 'STOCK', 'DEPOSIT']),
   eventDate: z.date({
-    required_error: 'Data sinistro obbligatoria',
+    message: 'Data sinistro obbligatoria',
   }),
   location: z.string().min(1, 'Luogo evento obbligatorio'),
   ddtCmrNumber: z.string().optional(),
-  hasThirdPartyResponsible: z.boolean().default(false),
+  hasThirdPartyResponsible: z.boolean(),
   carrierName: z.string().optional(),
   estimatedValue: z.string().optional(),
   verifiedDamage: z.string().optional(),
