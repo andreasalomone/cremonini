@@ -3,8 +3,8 @@
 import { auth } from '@clerk/nextjs/server';
 import { and, count, eq, gte, lte, sql, sum } from 'drizzle-orm';
 
+import { checkIsSuperAdmin } from '@/libs/auth-utils';
 import { db } from '@/libs/DB';
-import { Env } from '@/libs/Env';
 import { claimsSchema } from '@/models/Schema';
 
 export type SocietyReport = {
@@ -36,7 +36,7 @@ export async function getReportBySociety(
     throw new Error('Unauthorized');
   }
 
-  const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
+  const isSuperAdmin = checkIsSuperAdmin(orgId);
 
   if (!isSuperAdmin) {
     throw new Error('Reports are S&A admin only');
@@ -92,7 +92,7 @@ export async function getReportByPeriod(
     throw new Error('Unauthorized');
   }
 
-  const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
+  const isSuperAdmin = checkIsSuperAdmin(orgId);
 
   // Non-admins can only see their own org's report
   const targetOrgId = isSuperAdmin && orgIdFilter ? orgIdFilter : orgId;
@@ -145,7 +145,7 @@ export async function getRecoveryReport(startDate?: string, endDate?: string) {
     throw new Error('Unauthorized');
   }
 
-  const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
+  const isSuperAdmin = checkIsSuperAdmin(orgId);
 
   const conditions = [];
   if (!isSuperAdmin) {

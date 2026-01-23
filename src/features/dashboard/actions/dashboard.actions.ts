@@ -5,8 +5,8 @@ import { count, eq, sql, sum } from 'drizzle-orm';
 
 import { DEADLINES } from '@/constants/Deadlines';
 import { ECONOMICS } from '@/constants/Economics';
+import { checkIsSuperAdmin } from '@/libs/auth-utils';
 import { db } from '@/libs/DB';
-import { Env } from '@/libs/Env';
 import { claimsSchema } from '@/models/Schema';
 
 export type DashboardStats = {
@@ -30,7 +30,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   }
 
   // God Mode vs Tenant logic
-  const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
+  const isSuperAdmin = checkIsSuperAdmin(orgId);
 
   try {
     // Optimized SQL aggregates to avoid fetching all rows into memory

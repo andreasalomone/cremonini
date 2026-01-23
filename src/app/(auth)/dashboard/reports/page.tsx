@@ -7,6 +7,7 @@ import {
 } from '@/features/reports/actions/reports.actions';
 import {
   RecoveryStatsCards,
+  ReportExportDialog,
   SocietyReportTable,
 } from '@/features/reports/components';
 import { Env } from '@/libs/Env';
@@ -31,11 +32,14 @@ export default async function ReportsPage() {
 
   return (
     <div className="container mx-auto space-y-8 py-10">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Reportistica Avanzata</h1>
-        <p className="text-muted-foreground">
-          Visualizza le performance di recupero per società e periodi.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Reportistica Avanzata</h1>
+          <p className="text-muted-foreground">
+            Visualizza le performance di recupero per società e periodi.
+          </p>
+        </div>
+        <ReportExportDialog />
       </div>
 
       <RecoveryStatsCards data={recoveryReport} />
