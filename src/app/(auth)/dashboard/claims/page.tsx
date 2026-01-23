@@ -1,11 +1,16 @@
+import { auth } from '@clerk/nextjs/server';
+
 import { getClaims } from '@/features/claims/actions/claims.actions';
 import { ClaimsTable } from '@/features/claims/components/ClaimsTable';
 import { NewClaimDialog } from '@/features/claims/components/NewClaimDialog';
+import { checkIsSuperAdmin } from '@/libs/auth-utils';
 
 // Prevent static pre-rendering - this page requires runtime database access
 export const dynamic = 'force-dynamic';
 
 export default async function ClaimsPage() {
+  const { orgId } = await auth();
+  const isSuperAdmin = checkIsSuperAdmin(orgId);
   const claims = await getClaims();
 
   return (
@@ -21,7 +26,7 @@ export default async function ClaimsPage() {
         <NewClaimDialog />
       </div>
 
-      <ClaimsTable claims={claims} />
+      <ClaimsTable claims={claims} readOnly={!isSuperAdmin} />
     </div>
   );
 }

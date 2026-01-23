@@ -25,12 +25,14 @@ type ClaimsTableProps = {
   claims: Claim[];
   poaStatusMap?: Map<string, PoaStatus>;
   showPoaColumn?: boolean;
+  readOnly?: boolean;
 };
 
 export const ClaimsTable = ({
   claims,
   poaStatusMap,
   showPoaColumn = false,
+  readOnly = false,
 }: ClaimsTableProps) => {
   const router = useRouter();
 
@@ -115,7 +117,7 @@ export const ClaimsTable = ({
                           </TableCell>
                         )}
                         <TableCell onClick={e => e.stopPropagation()}>
-                          <ClaimStatusSelect claimId={claim.id} currentStatus={claim.status} />
+                          <ClaimStatusSelect claimId={claim.id} currentStatus={claim.status} readOnly={readOnly} />
                         </TableCell>
                       </TableRow>
                     );

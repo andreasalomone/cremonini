@@ -42,12 +42,14 @@ type EconomicFieldsProps = {
   claimId: string;
   initialValues?: Partial<EconomicFieldsValues>;
   onSave: (claimId: string, data: EconomicFieldsValues) => Promise<{ success: boolean }>;
+  readOnly?: boolean;
 };
 
 export const EconomicFields = ({
   claimId,
   initialValues,
   onSave,
+  readOnly = false,
 }: EconomicFieldsProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -91,7 +93,7 @@ export const EconomicFields = ({
                 <FormItem>
                   <FormLabel>Danno stimato (€)</FormLabel>
                   <FormControl>
-                    <Input placeholder="1.000,00" {...field} />
+                    <Input placeholder="1.000,00" {...field} disabled={readOnly} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -105,7 +107,7 @@ export const EconomicFields = ({
                 <FormItem>
                   <FormLabel>Danno accertato (€)</FormLabel>
                   <FormControl>
-                    <Input placeholder="800,00" {...field} />
+                    <Input placeholder="800,00" {...field} disabled={readOnly} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -119,7 +121,7 @@ export const EconomicFields = ({
                 <FormItem>
                   <FormLabel>Importo reclamato (€)</FormLabel>
                   <FormControl>
-                    <Input placeholder="800,00" {...field} />
+                    <Input placeholder="800,00" {...field} disabled={readOnly} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -133,7 +135,7 @@ export const EconomicFields = ({
                 <FormItem>
                   <FormLabel>Importo recuperato (€)</FormLabel>
                   <FormControl>
-                    <Input placeholder="600,00" {...field} />
+                    <Input placeholder="600,00" {...field} disabled={readOnly} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -146,7 +148,7 @@ export const EconomicFields = ({
                 <FormItem>
                   <FormLabel>Stima recupero (€)</FormLabel>
                   <FormControl>
-                    <Input placeholder="500,00" {...field} />
+                    <Input placeholder="500,00" {...field} disabled={readOnly} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -154,10 +156,12 @@ export const EconomicFields = ({
             />
           </div>
 
-          <Button type="submit" disabled={isSubmitting} size="sm">
-            {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-            Salva
-          </Button>
+          {!readOnly && (
+            <Button type="submit" disabled={isSubmitting} size="sm">
+              {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
+              Salva
+            </Button>
+          )}
         </form>
       </Form>
     </div>

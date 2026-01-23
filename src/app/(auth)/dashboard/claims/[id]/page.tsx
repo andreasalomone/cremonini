@@ -1,3 +1,4 @@
+import { auth } from '@clerk/nextjs/server';
 import { ChevronLeft, History } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -8,8 +9,10 @@ import { getClaimById, getDocumentUrl, updateClaimEconomics } from '@/features/c
 import { ClaimStatusSelect } from '@/features/claims/components/ClaimStatusSelect';
 import { ClaimTimeline } from '@/features/claims/components/ClaimTimeline';
 import { DocumentList } from '@/features/claims/components/DocumentList';
+import { DocumentUploadDialog } from '@/features/claims/components/DocumentUploadDialog';
 import { EconomicFields } from '@/features/claims/components/EconomicFields';
 import { CLAIM_STATE_OPTIONS, CLAIM_TYPE_OPTIONS } from '@/features/claims/constants';
+import { checkIsSuperAdmin } from '@/libs/auth-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +23,10 @@ type PageProps = {
 };
 
 export default async function ClaimDetailPage({ params }: PageProps) {
+  const { orgId } = await auth();
+  const isSuperAdmin = checkIsSuperAdmin(orgId);
+  const readOnly = !isSuperAdmin;
+
   const claim = await getClaimById(params.id);
 
   if (!claim) {
@@ -59,7 +66,7 @@ export default async function ClaimDetailPage({ params }: PageProps) {
         </div>
 
         <div className="flex items-center gap-3">
-          <ClaimStatusSelect claimId={claim.id} currentStatus={claim.status} />
+          <ClaimStatusSelect claimId={claim.id} currentStatus={claim.status} readOnly={readOnly} />
         </div>
       </div>
 
@@ -114,12 +121,14 @@ export default async function ClaimDetailPage({ params }: PageProps) {
               estimatedRecovery: claim.estimatedRecovery as string,
             }}
             onSave={updateClaimEconomics}
+            readOnly={readOnly}
           />
 
           {/* Documents Section */}
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-lg text-primary">Documentazione</CardTitle>
+              <DocumentUploadDialog claimId={claim.id} />
             </CardHeader>
             <CardContent>
               <DocumentList

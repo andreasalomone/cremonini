@@ -4,6 +4,7 @@ import { auth, clerkClient } from '@clerk/nextjs/server';
 import { and, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
+import { checkIsSuperAdmin } from '@/libs/auth-utils';
 import { db } from '@/libs/DB';
 import { calculateDeadlines, calculateExtendedDeadline } from '@/libs/deadline-logic';
 import { Env } from '@/libs/Env';
@@ -238,22 +239,12 @@ export async function updateClaimStatus(claimId: string, newStatus: ClaimStatus)
     return { success: false, error: 'Unauthorized' };
   }
 
-  const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
+  const isSuperAdmin = checkIsSuperAdmin(orgId);
 
-  if (!isSuperAdmin && !orgId) {
-    return { success: false, error: 'Unauthorized: No Organization context' };
-  }
-
+  // 🔒 PERMISSION: Only SuperAdmin can change claim status
   if (!isSuperAdmin) {
-    // ✅ AUDIT FIX: Partial select - only fetch id
-    const existingClaim = await db.query.claimsSchema.findFirst({
-      where: and(eq(claimsSchema.id, claimId), eq(claimsSchema.orgId, orgId!)),
-      columns: { id: true },
-    });
-
-    if (!existingClaim) {
-      return { success: false, error: 'Claim not found or access denied' };
-    }
+    logger.warn(`[ClaimsAction] Non-admin user ${userId} attempted status change on ${claimId}`);
+    return { success: false, error: 'Solo gli amministratori possono modificare lo stato' };
   }
 
   // Prepare update data
@@ -348,22 +339,12 @@ export async function updateClaimEconomics(claimId: string, data: UpdateClaimEco
     return { success: false, error: 'Unauthorized' };
   }
 
-  const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
+  const isSuperAdmin = checkIsSuperAdmin(orgId);
 
-  if (!isSuperAdmin && !orgId) {
-    return { success: false, error: 'Unauthorized: No Organization context' };
-  }
-
-  // Verify ownership for non-admin
+  // 🔒 PERMISSION: Only SuperAdmin can update economics
   if (!isSuperAdmin) {
-    const existingClaim = await db.query.claimsSchema.findFirst({
-      where: and(eq(claimsSchema.id, claimId), eq(claimsSchema.orgId, orgId!)),
-      columns: { id: true },
-    });
-
-    if (!existingClaim) {
-      return { success: false, error: 'Claim not found or access denied' };
-    }
+    logger.warn(`[ClaimsAction] Non-admin user ${userId} attempted economics update on ${claimId}`);
+    return { success: false, error: 'Solo gli amministratori possono modificare i dati economici' };
   }
 
   try {

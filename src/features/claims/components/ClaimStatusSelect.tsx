@@ -3,6 +3,7 @@
 import { useTransition } from 'react';
 import { toast } from 'sonner';
 
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -17,11 +18,13 @@ import { CLAIM_STATUS_OPTIONS } from '@/features/claims/constants';
 type ClaimStatusSelectProps = {
   claimId: string;
   currentStatus: string;
+  readOnly?: boolean;
 };
 
 export const ClaimStatusSelect = ({
   claimId,
   currentStatus,
+  readOnly = false,
 }: ClaimStatusSelectProps) => {
   const [isPending, startTransition] = useTransition();
 
@@ -41,6 +44,17 @@ export const ClaimStatusSelect = ({
       }
     });
   };
+
+  const currentLabel = CLAIM_STATUS_OPTIONS.find(opt => opt.value === currentStatus)?.label || currentStatus;
+
+  // Read-only mode: show a static badge instead of interactive select
+  if (readOnly) {
+    return (
+      <Badge variant="secondary" className="px-3 py-1.5 text-xs font-medium">
+        {currentLabel}
+      </Badge>
+    );
+  }
 
   return (
     <Select
