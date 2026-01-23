@@ -1,9 +1,10 @@
 'use client';
 
+import { useAuth } from '@clerk/nextjs';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format } from 'date-fns';
-import { ChevronDownIcon, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { ChevronDownIcon, Loader2, Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
@@ -31,7 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { createClaim } from '@/features/claims/actions/claims.actions';
+import { createClaim, getOrganizationOptions } from '@/features/claims/actions/claims.actions';
 import {
   CLAIM_STATE_OPTIONS,
   CLAIM_TYPE_OPTIONS,
@@ -39,10 +40,16 @@ import {
 import type { CreateClaimFormValues } from '@/features/claims/schema';
 import { CreateClaimSchema } from '@/features/claims/schema';
 import { calculateDeadlines } from '@/libs/deadline-logic';
+import { Env } from '@/libs/Env';
 
 export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
+  const { orgId } = useAuth();
+  const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [eventDatePopoverOpen, setEventDatePopoverOpen] = useState(false);
+  const [organizations, setOrganizations] = useState<{ id: string; name: string }[]>([]);
+  const [isLoadingOrgs, setIsLoadingOrgs] = useState(false);
   const [inboundDatePopoverOpen, setInboundDatePopoverOpen] = useState(false);
   const [outboundDatePopoverOpen, setOutboundDatePopoverOpen] = useState(false);
 
@@ -61,8 +68,22 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
       description: '',
       hasGrossNegligence: false,
       hasStockInboundReserve: false,
+      targetOrgId: '',
     },
   });
+
+  useEffect(() => {
+    if (isSuperAdmin) {
+      setIsLoadingOrgs(true);
+      getOrganizationOptions()
+        .then(setOrganizations)
+        .catch((err) => {
+          console.error('[ClaimForm] Failed to fetch organizations:', err);
+          toast.error('Errore nel caricamento delle organizzazioni');
+        })
+        .finally(() => setIsLoadingOrgs(false));
+    }
+  }, [isSuperAdmin]);
 
   const watchType = form.watch('type');
   const watchState = form.watch('state');
@@ -72,6 +93,9 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
   const watchOutboundDate = form.watch('stockOutboundDate');
   const watchInboundReserve = form.watch('hasStockInboundReserve');
   const watchHasThirdParty = form.watch('hasThirdPartyResponsible');
+  const watchTargetOrgId = form.watch('targetOrgId');
+
+  const isFormValid = !isSuperAdmin || (isSuperAdmin && !!watchTargetOrgId);
 
   const deadlines = watchDate
     ? calculateDeadlines({
@@ -104,6 +128,40 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+
+        {/* SuperAdmin Organization Selector */}
+        {isSuperAdmin && (
+          <FormField
+            control={form.control}
+            name="targetOrgId"
+            render={({ field }) => (
+              <FormItem className="rounded-md border border-orange-200 bg-orange-50/30 p-4">
+                <FormLabel className="flex items-center gap-2 font-semibold text-orange-900">
+                  <Search className="size-4" />
+                  SELEZIONA AZIENDA / CLIENTE *
+                </FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="border-orange-200 bg-white">
+                      <SelectValue placeholder={isLoadingOrgs ? 'Caricamento aziende...' : 'Seleziona un\'azienda'} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {organizations.map(org => (
+                      <SelectItem key={org.id} value={org.id}>
+                        {org.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription className="text-[10px] text-orange-800/70">
+                  Come SuperAdmin, devi selezionare l'azienda proprietaria del sinistro.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {/* Type Selection */}
@@ -530,9 +588,14 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
           )}
         />
 
-        <Button type="submit" disabled={isSubmitting} className="w-full">
-          {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-          Crea Sinistro
+        <Button type="submit" disabled={isSubmitting || !isFormValid} className="w-full">
+          {isSubmitting
+            ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              )
+            : (
+                'Crea Sinistro'
+              )}
         </Button>
       </form>
     </Form>

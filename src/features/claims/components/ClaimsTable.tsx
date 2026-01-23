@@ -1,5 +1,7 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+
 import {
   Table,
   TableBody,
@@ -12,8 +14,6 @@ import type { PoaStatus } from '@/features/procura/actions/procura.actions';
 import { PoaStatusBadge } from '@/features/procura/components/PoaStatusBadge';
 import { calculateDeadlines } from '@/libs/deadline-logic';
 import type { Claim } from '@/models/Schema';
-
-import { useRouter } from 'next/navigation';
 
 import { CLAIM_TYPE_OPTIONS } from '../constants';
 import { ClaimStatusSelect } from './ClaimStatusSelect';

@@ -1,6 +1,6 @@
 'use server';
 
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 import { and, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
@@ -31,6 +31,7 @@ export type CreateClaimInput = {
   stockOutboundDate?: Date;
   hasStockInboundReserve?: boolean;
   hasGrossNegligence?: boolean;
+  targetOrgId?: string; // Optional target organization for SuperAdmins
 };
 
 // Helpers
@@ -155,8 +156,20 @@ export async function getClaimById(id: string) {
 export async function createClaim(data: CreateClaimInput) {
   const { orgId, userId } = await auth();
 
-  if (!orgId || !userId) {
-    throw new Error('Unauthorized: No Organization or User context');
+  const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
+
+  let targetOrgId = orgId;
+
+  if (isSuperAdmin) {
+    if (!data.targetOrgId) {
+      throw new Error('SuperAdmin must select a target organization.');
+    }
+    targetOrgId = data.targetOrgId;
+    logger.info(`[SuperAdmin] User ${userId} creating claim for organization ${targetOrgId}`);
+  }
+
+  if (!userId || !targetOrgId) {
+    throw new Error('Unauthorized: Missing User or Organization context');
   }
 
   // --- AUTOMATED DEADLINE LOGIC ---
@@ -172,7 +185,7 @@ export async function createClaim(data: CreateClaimInput) {
   });
 
   const newClaim: typeof claimsSchema.$inferInsert = {
-    orgId,
+    orgId: targetOrgId,
     creatorId: userId,
     status: 'OPEN',
     type: data.type,
@@ -411,4 +424,33 @@ export async function getDocumentUrl(path: string) {
     logger.error(`[ClaimsAction] Failed to get signed URL for ${path}:`, error);
     return null;
   }
+}
+
+/**
+ * Super Admin Action: Get all organization options from Clerk.
+ */
+export async function getOrganizationOptions() {
+  const { orgId } = await auth();
+
+  if (!orgId) {
+    throw new Error('Unauthorized');
+  }
+
+  const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
+
+  if (!isSuperAdmin) {
+    throw new Error('Access denied: Admin only');
+  }
+
+  const client = await clerkClient();
+
+  // Fetch all organizations from Clerk (limit 100 for now)
+  const clerkOrgsResponse = await client.organizations.getOrganizationList({
+    limit: 100,
+  });
+
+  return clerkOrgsResponse.data.map(org => ({
+    id: org.id,
+    name: org.name,
+  }));
 }

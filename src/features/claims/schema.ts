@@ -32,6 +32,7 @@ export const CreateClaimSchema = z.object({
 
   // Legal Fields
   hasGrossNegligence: z.boolean().optional(),
+  targetOrgId: z.string().optional(),
 }).refine((data) => {
   if (data.type === 'STOCK_IN_TRANSIT' && data.stockInboundDate && data.stockOutboundDate) {
     return data.stockInboundDate <= data.stockOutboundDate;
