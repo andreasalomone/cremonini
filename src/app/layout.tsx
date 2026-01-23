@@ -1,7 +1,12 @@
 import '@/styles/global.css';
 
 import type { Metadata } from 'next';
+import dynamic from 'next/dynamic';
 import { Toaster } from 'sonner';
+
+const Agentation = dynamic(() => import('agentation').then(mod => mod.Agentation), {
+  ssr: false,
+});
 
 export const metadata: Metadata = {
   icons: [
@@ -38,6 +43,7 @@ export default function RootLayout(props: {
         {props.children}
 
         <Toaster />
+        {process.env.NODE_ENV === 'development' && <Agentation />}
       </body>
     </html>
   );
