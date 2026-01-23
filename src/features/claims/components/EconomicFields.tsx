@@ -23,6 +23,7 @@ const EconomicFieldsSchema = z.object({
   verifiedDamage: z.string().optional(),
   claimedAmount: z.string().optional(),
   recoveredAmount: z.string().optional(),
+  estimatedRecovery: z.string().optional(),
 });
 
 type EconomicFieldsValues = z.infer<typeof EconomicFieldsSchema>;
@@ -57,6 +58,7 @@ export const EconomicFields = ({
       verifiedDamage: formatCurrency(initialValues?.verifiedDamage),
       claimedAmount: formatCurrency(initialValues?.claimedAmount),
       recoveredAmount: formatCurrency(initialValues?.recoveredAmount),
+      estimatedRecovery: formatCurrency(initialValues?.estimatedRecovery),
     },
   });
 
@@ -132,6 +134,19 @@ export const EconomicFields = ({
                   <FormLabel>Importo recuperato (€)</FormLabel>
                   <FormControl>
                     <Input placeholder="600,00" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="estimatedRecovery"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Stima recupero (€)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="500,00" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

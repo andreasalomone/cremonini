@@ -23,8 +23,7 @@
     "storybook:build": "storybook build",
     "storybook:serve": "http-server storybook-static --port 6006 --silent",
     "serve-storybook": "run-s storybook:*",
-    "test-storybook:ci": "start-server-and-test serve-storybook http://127.0.0.1:6006 test-storybook",
-    "prepare": "husky"
+    "test-storybook:ci": "start-server-and-test serve-storybook http://127.0.0.1:6006 test-storybook"
   },
   "dependencies": {
     "@clerk/localizations": "^3.14.2",
@@ -126,7 +125,6 @@
     "eslint-plugin-tailwindcss": "^3.17.5",
     "eslint-plugin-testing-library": "^6.3.0",
     "http-server": "^14.1.1",
-    "husky": "^9.1.6",
     "jiti": "^1.21.6",
     "jsdom": "^25.0.1",
     "lint-staged": "^15.2.10",

@@ -52,10 +52,12 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
       type: 'TERRESTRIAL',
       state: 'NATIONAL',
       location: '',
-      ddtCmrNumber: '',
-      hasThirdPartyResponsible: false,
+      documentNumber: '',
+      hasThirdPartyResponsible: true, // Default for TERRESTRIAL
+      thirdPartyName: '',
       carrierName: '',
       estimatedValue: '',
+      estimatedRecovery: '',
       description: '',
       hasGrossNegligence: false,
       hasStockInboundReserve: false,
@@ -69,6 +71,7 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
   const watchInboundDate = form.watch('stockInboundDate');
   const watchOutboundDate = form.watch('stockOutboundDate');
   const watchInboundReserve = form.watch('hasStockInboundReserve');
+  const watchHasThirdParty = form.watch('hasThirdPartyResponsible');
 
   const deadlines = watchDate
     ? calculateDeadlines({
@@ -110,7 +113,15 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Tipologia *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={(val) => {
+                    field.onChange(val);
+                    // Default logic: CHECKED (Sì) se Trasporto (any besides SIT); UNCHECKED (No) se Stock in Transit.
+                    const isTransport = val !== 'STOCK_IN_TRANSIT';
+                    form.setValue('hasThirdPartyResponsible', isTransport);
+                  }}
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Seleziona tipologia" />
@@ -367,15 +378,15 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
         />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {/* DDT/CMR Number - NEW FIELD */}
+          {/* Document Number - RENAMED FIELD */}
           <FormField
             control={form.control}
-            name="ddtCmrNumber"
+            name="documentNumber"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Numero DDT / CMR</FormLabel>
+                <FormLabel>NUMERO DOCUMENTO</FormLabel>
                 <FormControl>
-                  <Input placeholder="es. DDT-2026-001234" {...field} />
+                  <Input placeholder="es. DDT-2026-001234, CMR-456..." {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -420,20 +431,54 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
           )}
         />
 
-        {/* Estimated Value */}
-        <FormField
-          control={form.control}
-          name="estimatedValue"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Valore stimato del danno (€)</FormLabel>
-              <FormControl>
-                <Input placeholder="1.000,00" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Conditional Third Party Name */}
+        {watchHasThirdParty && (
+          <FormField
+            control={form.control}
+            name="thirdPartyName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nome Terzo Responsabile</FormLabel>
+                <FormControl>
+                  <Input placeholder="Nome della società o persona..." {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {/* Estimated Value */}
+          <FormField
+            control={form.control}
+            name="estimatedValue"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Valore stimato del danno (€)</FormLabel>
+                <FormControl>
+                  <Input placeholder="1.000,00" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Estimated Recovery (Stima recupero) */}
+          <FormField
+            control={form.control}
+            name="estimatedRecovery"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Stima recupero (€)</FormLabel>
+                <FormControl>
+                  <Input placeholder="500,00" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         {/* Description */}
         <FormField

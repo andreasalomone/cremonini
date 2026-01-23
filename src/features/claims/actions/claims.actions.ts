@@ -18,10 +18,12 @@ export type CreateClaimInput = {
   state: 'NATIONAL' | 'INTERNATIONAL';
   eventDate: Date;
   location: string;
-  ddtCmrNumber?: string;
+  documentNumber?: string;
   hasThirdPartyResponsible?: boolean;
+  thirdPartyName?: string;
   carrierName?: string;
   estimatedValue?: string;
+  estimatedRecovery?: string;
   description?: string;
   documentPath?: string;
   stockInboundDate?: Date;
@@ -109,10 +111,12 @@ export async function createClaim(data: CreateClaimInput) {
     state: data.state,
     eventDate: formatDate(eventDate),
     location: data.location,
-    ddtCmrNumber: data.ddtCmrNumber,
+    documentNumber: data.documentNumber,
     hasThirdPartyResponsible: data.hasThirdPartyResponsible ?? false,
+    thirdPartyName: data.thirdPartyName,
     carrierName: data.carrierName,
     estimatedValue: sanitizeCurrency(data.estimatedValue),
+    estimatedRecovery: sanitizeCurrency(data.estimatedRecovery),
     description: data.description,
     documentPath: data.documentPath,
     reserveDeadline: formatDateNullable(reserveDeadline),
@@ -203,6 +207,7 @@ export type UpdateClaimEconomicsInput = {
   verifiedDamage?: string;
   claimedAmount?: string;
   recoveredAmount?: string;
+  estimatedRecovery?: string;
 };
 
 /**
@@ -242,6 +247,7 @@ export async function updateClaimEconomics(claimId: string, data: UpdateClaimEco
         verifiedDamage: sanitizeCurrency(data.verifiedDamage),
         claimedAmount: sanitizeCurrency(data.claimedAmount),
         recoveredAmount: sanitizeCurrency(data.recoveredAmount),
+        estimatedRecovery: sanitizeCurrency(data.estimatedRecovery),
         updatedAt: new Date(),
       })
       .where(eq(claimsSchema.id, claimId));

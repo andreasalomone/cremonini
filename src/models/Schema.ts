@@ -93,9 +93,11 @@ export const claimsSchema = pgTable('claims', {
   // Core fields
   eventDate: date('event_date').notNull(),
   location: text('location'), // Luogo evento
-  ddtCmrNumber: text('ddt_cmr_number'), // Numero DDT/CMR
+  documentNumber: text('document_number'), // Renamed from ddtCmrNumber
   carrierName: text('carrier_name'),
   hasThirdPartyResponsible: boolean('has_third_party').default(false), // Presenza terzi responsabili
+  thirdPartyName: text('third_party_name'),
+  estimatedRecovery: decimal('estimated_recovery', { precision: 15, scale: 2 }),
   description: text('description'),
   documentUrl: text('document_url'), // Legacy single doc (kept for backwards compat)
   documentPath: text('document_path'), // Supabase Storage path

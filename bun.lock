@@ -104,7 +104,6 @@
         "eslint-plugin-tailwindcss": "^3.17.5",
         "eslint-plugin-testing-library": "^6.3.0",
         "http-server": "^14.1.1",
-        "husky": "^9.1.6",
         "jiti": "^1.21.6",
         "jsdom": "^25.0.1",
         "lint-staged": "^15.2.10",
