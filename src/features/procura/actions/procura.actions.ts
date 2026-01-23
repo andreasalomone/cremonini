@@ -1,7 +1,7 @@
 'use server';
 
 import { auth, clerkClient } from '@clerk/nextjs/server';
-import { eq, inArray } from 'drizzle-orm';
+import { desc, eq, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
 import { db } from '@/libs/DB';
@@ -9,73 +9,79 @@ import { Env } from '@/libs/Env';
 import type { NewPowerOfAttorney } from '@/models/Schema';
 import { powerOfAttorneySchema } from '@/models/Schema';
 
+import { GLOBAL_CREMONINI_ID, GLOBAL_CREMONINI_NAME } from '../constants';
+
 /**
- * Get Power of Attorney for an organization.
- * Each org has one active PoA record.
+ * Get all Power of Attorney records for an organization.
  */
-export async function getProcura(targetOrgId?: string) {
+export async function getProcureByOrgId(targetOrgId?: string) {
   const { orgId } = await auth();
 
   if (!orgId) {
-    return null;
+    return [];
   }
 
   const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
-
-  // S&A admin can view any org's PoA, tenant can only view their own
   const queryOrgId = isSuperAdmin && targetOrgId ? targetOrgId : orgId;
 
-  return await db.query.powerOfAttorneySchema.findFirst({
+  return await db.query.powerOfAttorneySchema.findMany({
     where: eq(powerOfAttorneySchema.orgId, queryOrgId),
+    orderBy: [desc(powerOfAttorneySchema.createdAt)],
   });
 }
 
 /**
- * Create or update Power of Attorney for the current organization.
- * Only the org itself can upload their PoA.
+ * Get the most recent Power of Attorney for an organization.
  */
-export async function upsertProcura(
-  data: Omit<NewPowerOfAttorney, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>,
+export async function getLatestProcura(targetOrgId?: string) {
+  const procure = await getProcureByOrgId(targetOrgId);
+  return procure[0] ?? null;
+}
+
+/**
+ * Legacy: keep getProcura name but point to latest
+ */
+export async function getProcura(targetOrgId?: string) {
+  return getLatestProcura(targetOrgId);
+}
+
+/**
+ * Admin Action: Create a new Power of Attorney record.
+ * Supports multiple records per organization.
+ */
+export async function createProcura(
+  data: Omit<NewPowerOfAttorney, 'id' | 'createdAt' | 'updatedAt'>,
 ) {
   const { orgId, userId } = await auth();
 
   if (!orgId || !userId) {
-    throw new Error('Unauthorized: No Organization or User context');
+    throw new Error('Unauthorized');
   }
 
-  // Check if PoA already exists
-  const existing = await db.query.powerOfAttorneySchema.findFirst({
-    where: eq(powerOfAttorneySchema.orgId, orgId),
-    columns: { id: true },
+  const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
+
+  // Only admin can upload for other orgs or the global group.
+  // We check if data.orgId is truthy to avoid saving to empty string if using legacy upsertProcura.
+  const finalOrgId = (isSuperAdmin && data.orgId) ? data.orgId : orgId;
+
+  await db.insert(powerOfAttorneySchema).values({
+    ...data,
+    orgId: finalOrgId,
   });
-
-  if (existing) {
-    // Update existing
-    await db
-      .update(powerOfAttorneySchema)
-      .set({
-        documentUrl: data.documentUrl,
-        documentPath: data.documentPath,
-        expiryDate: data.expiryDate,
-        saAuthorizedToAct: data.saAuthorizedToAct ?? false,
-        saAuthorizedToCollect: data.saAuthorizedToCollect ?? false,
-        updatedAt: new Date(),
-      })
-      .where(eq(powerOfAttorneySchema.id, existing.id));
-  } else {
-    // Insert new
-    await db.insert(powerOfAttorneySchema).values({
-      orgId,
-      documentUrl: data.documentUrl,
-      documentPath: data.documentPath,
-      expiryDate: data.expiryDate,
-      saAuthorizedToAct: data.saAuthorizedToAct ?? false,
-      saAuthorizedToCollect: data.saAuthorizedToCollect ?? false,
-    });
-  }
 
   revalidatePath('/dashboard/procura');
   return { success: true };
+}
+
+/**
+ * Create or update Power of Attorney for the current organization. (Legacy/Tenant)
+ */
+export async function upsertProcura(
+  data: Omit<NewPowerOfAttorney, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>,
+) {
+  // Keep existing upsert for backward compatibility if needed,
+  // but we prefer createProcura now.
+  return createProcura({ ...data, orgId: '' }); // orgId will be forced to current org in createProcura if not admin
 }
 
 /**
@@ -138,48 +144,27 @@ export async function getPoaStatusByOrgIds(orgIds: string[]): Promise<Map<string
   }
 
   const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
-
-  if (!isSuperAdmin) {
-    // Non-admins get their own org's status only
-    const procura = await db.query.powerOfAttorneySchema.findFirst({
-      where: eq(powerOfAttorneySchema.orgId, orgId),
-    });
-
-    const status: PoaStatus = procura
-      ? {
-          hasPoA: true,
-          isExpired: procura.expiryDate
-            ? new Date(procura.expiryDate) < new Date()
-            : false,
-          saAuthorizedToAct: procura.saAuthorizedToAct ?? false,
-          saAuthorizedToCollect: procura.saAuthorizedToCollect ?? false,
-        }
-      : {
-          hasPoA: false,
-          isExpired: false,
-          saAuthorizedToAct: false,
-          saAuthorizedToCollect: false,
-        };
-
-    return new Map([[orgId, status]]);
-  }
-
-  // Admin: fetch all PoAs for the given org IDs
   const uniqueOrgIds = [...new Set(orgIds)];
 
-  if (uniqueOrgIds.length === 0) {
+  // Add current org if not in list and not admin?
+  // Actually, usually the input list is what we care about.
+
+  // Add global ID if searching all or if admin
+  const searchIds = isSuperAdmin ? [...uniqueOrgIds, GLOBAL_CREMONINI_ID] : uniqueOrgIds;
+
+  if (searchIds.length === 0) {
     return new Map();
   }
 
-  // ✅ AUDIT FIX: Filter by IDs in DB instead of fetching all
   const procure = await db.query.powerOfAttorneySchema.findMany({
-    where: inArray(powerOfAttorneySchema.orgId, uniqueOrgIds),
+    where: inArray(powerOfAttorneySchema.orgId, searchIds),
+    orderBy: [desc(powerOfAttorneySchema.createdAt)],
   });
 
   const statusMap = new Map<string, PoaStatus>();
   const procuraByOrg = new Map(procure.map(p => [p.orgId, p]));
 
-  for (const id of uniqueOrgIds) {
+  for (const id of searchIds) {
     const procura = procuraByOrg.get(id);
     statusMap.set(id, procura
       ? {
@@ -241,7 +226,24 @@ export async function getAllOrganizationsWithProcuraStatus(): Promise<Organizati
   const statusMap = await getPoaStatusByOrgIds(orgIds);
 
   // Combine data
-  return clerkOrgs.map(org => ({
+  const result: OrganizationProcuraStatus[] = [];
+
+  // Add Global/Group row first
+  result.push({
+    id: GLOBAL_CREMONINI_ID,
+    name: GLOBAL_CREMONINI_NAME,
+    slug: 'global',
+    imageUrl: '', // Or a group icon
+    procura: statusMap.get(GLOBAL_CREMONINI_ID) ?? {
+      hasPoA: false,
+      isExpired: false,
+      saAuthorizedToAct: false,
+      saAuthorizedToCollect: false,
+    },
+  });
+
+  // Add all other orgs
+  result.push(...clerkOrgs.map(org => ({
     id: org.id,
     name: org.name,
     slug: org.slug,
@@ -252,5 +254,7 @@ export async function getAllOrganizationsWithProcuraStatus(): Promise<Organizati
       saAuthorizedToAct: false,
       saAuthorizedToCollect: false,
     },
-  }));
+  })));
+
+  return result;
 }

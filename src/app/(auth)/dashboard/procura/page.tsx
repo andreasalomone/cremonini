@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 
 import { getAllOrganizationsWithProcuraStatus, getProcura } from '@/features/procura/actions/procura.actions';
+import { AdminPoaUploadForm } from '@/features/procura/components/AdminPoaUploadForm';
 import { ProcuraAdminTable } from '@/features/procura/components/ProcuraAdminTable';
 import { ProcuraForm } from '@/features/procura/components/ProcuraForm';
 import { Env } from '@/libs/Env';
@@ -26,11 +27,18 @@ export default async function ProcuraPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight">Gestione Procure (Admin)</h1>
           <p className="text-muted-foreground">
-            Monitoraggio stato procure di tutte le società.
+            Monitoraggio e caricamento procure per tutte le società del gruppo.
           </p>
         </div>
 
-        <ProcuraAdminTable organizations={allOrganizations} />
+        <div className="grid gap-8 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <ProcuraAdminTable organizations={allOrganizations} />
+          </div>
+          <div>
+            <AdminPoaUploadForm organizations={allOrganizations} />
+          </div>
+        </div>
       </div>
     );
   }

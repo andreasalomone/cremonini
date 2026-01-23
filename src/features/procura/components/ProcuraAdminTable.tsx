@@ -25,6 +25,8 @@ import {
 import type { OrganizationProcuraStatus } from '@/features/procura/actions/procura.actions';
 import { getProcura } from '@/features/procura/actions/procura.actions';
 
+import { GLOBAL_CREMONINI_ID } from '../constants';
+
 type ProcuraAdminTableProps = {
   organizations: OrganizationProcuraStatus[];
 };
@@ -86,13 +88,22 @@ export const ProcuraAdminTable = ({ organizations }: ProcuraAdminTableProps) => 
               <TableRow key={org.id}>
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={org.imageUrl}
-                      alt={org.name}
-                      className="size-6 rounded-full"
-                    />
-                    <span>{org.name}</span>
+                    {org.imageUrl
+                      ? (
+                          <img
+                            src={org.imageUrl}
+                            alt={org.name}
+                            className="size-6 rounded-full"
+                          />
+                        )
+                      : (
+                          <div className="flex size-6 items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-700">
+                            GC
+                          </div>
+                        )}
+                    <span className={org.id === GLOBAL_CREMONINI_ID ? 'font-bold text-blue-700' : ''}>
+                      {org.name}
+                    </span>
                   </div>
                 </TableCell>
                 <TableCell>

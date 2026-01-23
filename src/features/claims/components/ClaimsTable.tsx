@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/table';
 import type { PoaStatus } from '@/features/procura/actions/procura.actions';
 import { PoaStatusBadge } from '@/features/procura/components/PoaStatusBadge';
+import { GLOBAL_CREMONINI_ID } from '@/features/procura/constants';
 import { calculateDeadlines } from '@/libs/deadline-logic';
 import type { Claim } from '@/models/Schema';
 
@@ -103,7 +104,13 @@ export const ClaimsTable = ({
                         </TableCell>
                         {showPoaColumn && (
                           <TableCell>
-                            <PoaStatusBadge status={poaStatusMap?.get(claim.orgId)} />
+                            <PoaStatusBadge
+                              status={
+                                poaStatusMap?.get(claim.orgId)?.hasPoA
+                                  ? poaStatusMap.get(claim.orgId)
+                                  : poaStatusMap?.get(GLOBAL_CREMONINI_ID)
+                              }
+                            />
                           </TableCell>
                         )}
                         <TableCell onClick={e => e.stopPropagation()}>
