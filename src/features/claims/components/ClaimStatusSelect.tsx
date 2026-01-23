@@ -48,7 +48,7 @@ export const ClaimStatusSelect = ({
       onValueChange={handleStatusChange}
       disabled={isPending}
     >
-      <SelectTrigger className="w-[220px]">
+      <SelectTrigger className="w-56">
         <SelectValue placeholder="Seleziona stato" />
       </SelectTrigger>
       <SelectContent>

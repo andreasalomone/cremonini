@@ -7,6 +7,15 @@ type DeadlineAlertProps = {
   claimUrl: string;
 };
 
+const COLORS = {
+  BRAND_RED: '#ef4444',
+  BRAND_ORANGE: '#f97316',
+  TEXT_MAIN: '#111827',
+  TEXT_MUTED: '#6b7280',
+  WHITE: '#ffffff',
+  BORDER_LIGHT: '#e5e7eb',
+} as const;
+
 export const DeadlineAlert: React.FC<DeadlineAlertProps> = ({
   claimId,
   daysLeft,
@@ -14,17 +23,17 @@ export const DeadlineAlert: React.FC<DeadlineAlertProps> = ({
   claimUrl,
 }: DeadlineAlertProps) => {
   const isUrgent = daysLeft <= 3;
-  const color = isUrgent ? '#ef4444' : '#f97316'; // Red vs Orange
+  const color = isUrgent ? COLORS.BRAND_RED : COLORS.BRAND_ORANGE;
 
   return (
-    <div style={{ fontFamily: 'sans-serif', lineHeight: '1.5', color: '#111827' }}>
+    <div style={{ fontFamily: 'sans-serif', lineHeight: '1.5', color: COLORS.TEXT_MAIN }}>
       <div style={{
         border: `1px solid ${color}`,
         borderRadius: '8px',
         padding: '20px',
         maxWidth: '500px',
         margin: '0 auto',
-        backgroundColor: '#fff',
+        backgroundColor: COLORS.WHITE,
       }}
       >
         <h2 style={{
@@ -45,7 +54,7 @@ export const DeadlineAlert: React.FC<DeadlineAlertProps> = ({
         <p style={{ fontSize: '16px' }}>
           Il claim
           {' '}
-          <strong style={{ color: '#000' }}>
+          <strong style={{ color: COLORS.TEXT_MAIN }}>
             #
             {claimId.slice(0, 8)}
           </strong>
@@ -60,7 +69,7 @@ export const DeadlineAlert: React.FC<DeadlineAlertProps> = ({
           .
         </p>
 
-        <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '24px' }}>
+        <p style={{ color: COLORS.TEXT_MUTED, fontSize: '14px', marginBottom: '24px' }}>
           È necessario intervenire prima della scadenza per evitare la decadenza del diritto.
         </p>
 
@@ -69,7 +78,7 @@ export const DeadlineAlert: React.FC<DeadlineAlertProps> = ({
           style={{
             display: 'inline-block',
             backgroundColor: color,
-            color: '#ffffff',
+            color: COLORS.WHITE,
             padding: '12px 24px',
             borderRadius: '6px',
             textDecoration: 'none',
@@ -83,9 +92,9 @@ export const DeadlineAlert: React.FC<DeadlineAlertProps> = ({
           Valuta Claim
         </a>
 
-        <hr style={{ margin: '24px 0', borderColor: '#e5e7eb' }} />
+        <hr style={{ margin: '24px 0', borderColor: COLORS.BORDER_LIGHT }} />
 
-        <p style={{ fontSize: '12px', color: '#9ca3af', textAlign: 'center' }}>
+        <p style={{ fontSize: '12px', color: COLORS.TEXT_MUTED, textAlign: 'center' }}>
           Questa è una notifica automatica da Cremonini Claims Platform.
         </p>
       </div>

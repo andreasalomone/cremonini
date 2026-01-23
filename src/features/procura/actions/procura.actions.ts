@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 
 import { db } from '@/libs/DB';
 import { Env } from '@/libs/Env';
+import { logger } from '@/libs/Logger';
 import type { NewPowerOfAttorney } from '@/models/Schema';
 import { powerOfAttorneySchema } from '@/models/Schema';
 
@@ -64,6 +65,8 @@ export async function createProcura(
   // We check if data.orgId is truthy to avoid saving to empty string if using legacy upsertProcura.
   const finalOrgId = (isSuperAdmin && data.orgId) ? data.orgId : orgId;
 
+  logger.info({ finalOrgId, userId }, 'Creating new PoA');
+
   await db.insert(powerOfAttorneySchema).values({
     ...data,
     orgId: finalOrgId,
@@ -93,6 +96,8 @@ export async function deleteProcura() {
   if (!orgId || !userId) {
     throw new Error('Unauthorized: No Organization or User context');
   }
+
+  logger.info({ orgId, userId }, 'Deleting all PoAs for org');
 
   await db
     .delete(powerOfAttorneySchema)
@@ -213,10 +218,10 @@ export async function getAllOrganizationsWithProcuraStatus(): Promise<Organizati
 
   const client = await clerkClient();
 
-  // Fetch all organizations from Clerk (limit 100 for now, add pagination if needed later)
-  // We use this to get the names which are not in our DB
+  // SCALABILITY: Relax limit to 500.
+  // If the group grows beyond 500 entities, we should implement proper cursor-pagination.
   const clerkOrgsResponse = await client.organizations.getOrganizationList({
-    limit: 100,
+    limit: 500,
   });
 
   const clerkOrgs = clerkOrgsResponse.data;

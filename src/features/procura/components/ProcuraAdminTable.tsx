@@ -1,6 +1,7 @@
 'use client';
 
 import { CheckCircle2, FileText, XCircle } from 'lucide-react';
+import Image from 'next/image';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -22,6 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { LABELS } from '@/constants/Labels';
 import type { OrganizationProcuraStatus } from '@/features/procura/actions/procura.actions';
 import { getProcura } from '@/features/procura/actions/procura.actions';
 
@@ -50,7 +52,7 @@ export const ProcuraAdminTable = ({ organizations }: ProcuraAdminTableProps) => 
       return;
     }
 
-    newWindow.document.write('Loading document...');
+    newWindow.document.write(LABELS.COMMON.LOADING);
 
     try {
       const procura = await getProcura(orgId);
@@ -77,10 +79,10 @@ export const ProcuraAdminTable = ({ organizations }: ProcuraAdminTableProps) => 
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Organization</TableHead>
-              <TableHead>Procura Status</TableHead>
-              <TableHead>Actions</TableHead>
-              <TableHead>Expiry</TableHead>
+              <TableHead>{LABELS.PROCURA.ORGANIZATION}</TableHead>
+              <TableHead>{LABELS.PROCURA.STATUS}</TableHead>
+              <TableHead>{LABELS.COMMON.ACTIONS}</TableHead>
+              <TableHead>{LABELS.PROCURA.EXPIRY}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -90,18 +92,20 @@ export const ProcuraAdminTable = ({ organizations }: ProcuraAdminTableProps) => 
                   <div className="flex items-center gap-2">
                     {org.imageUrl
                       ? (
-                          <img
+                          <Image
                             src={org.imageUrl}
                             alt={org.name}
+                            width={24}
+                            height={24}
                             className="size-6 rounded-full"
                           />
                         )
                       : (
-                          <div className="flex size-6 items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-700">
+                          <div className="flex size-6 items-center justify-center rounded-full bg-info/10 text-[10px] font-bold text-info">
                             GC
                           </div>
                         )}
-                    <span className={org.id === GLOBAL_CREMONINI_ID ? 'font-bold text-blue-700' : ''}>
+                    <span className={org.id === GLOBAL_CREMONINI_ID ? 'font-bold text-info' : ''}>
                       {org.name}
                     </span>
                   </div>
@@ -109,15 +113,15 @@ export const ProcuraAdminTable = ({ organizations }: ProcuraAdminTableProps) => 
                 <TableCell>
                   {org.procura.hasPoA
                     ? (
-                        <Badge variant="outline" className="gap-1 border-green-500 text-green-500">
+                        <Badge variant="outline" className="gap-1 border-success text-success">
                           <CheckCircle2 className="size-3" />
-                          Uploaded
+                          {LABELS.PROCURA.UPLOADED}
                         </Badge>
                       )
                     : (
-                        <Badge variant="outline" className="gap-1 border-red-500 text-red-500">
+                        <Badge variant="outline" className="gap-1 border-destructive text-destructive">
                           <XCircle className="size-3" />
-                          Missing
+                          {LABELS.PROCURA.MISSING}
                         </Badge>
                       )}
                 </TableCell>
@@ -126,18 +130,18 @@ export const ProcuraAdminTable = ({ organizations }: ProcuraAdminTableProps) => 
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="gap-1 text-blue-600 hover:text-blue-800"
+                      className="gap-1 text-info hover:text-info/80"
                       onClick={() => handleOpenDocument(org.id)}
                     >
                       <FileText className="size-4" />
-                      View Document
+                      {LABELS.PROCURA.VIEW_DOCUMENT}
                     </Button>
                   )}
                 </TableCell>
                 <TableCell>
                   {org.procura.isExpired
                     ? (
-                        <span className="font-bold text-red-500">Expired</span>
+                        <span className="font-bold text-destructive">{LABELS.PROCURA.EXPIRED}</span>
                       )
                     : (
                         <span className="text-muted-foreground">-</span>
@@ -148,7 +152,7 @@ export const ProcuraAdminTable = ({ organizations }: ProcuraAdminTableProps) => 
             {currentOrganizations.length === 0 && (
               <TableRow>
                 <TableCell colSpan={4} className="h-24 text-center">
-                  No organizations found.
+                  {LABELS.PROCURA.NO_ORGS}
                 </TableCell>
               </TableRow>
             )}

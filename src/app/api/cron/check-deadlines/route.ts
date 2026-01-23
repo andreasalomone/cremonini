@@ -8,6 +8,7 @@ import { DeadlineAlert } from '@/components/emails/DeadlineAlert';
 import { DEADLINES } from '@/constants/Deadlines';
 import { db } from '@/libs/DB';
 import { Env } from '@/libs/Env';
+import { logger } from '@/libs/Logger';
 import { claimsSchema } from '@/models/Schema';
 
 // Prevent static pre-rendering - this route requires runtime database access
@@ -17,21 +18,14 @@ export const dynamic = 'force-dynamic';
 const resend = new Resend(Env.RESEND_API_KEY);
 
 /**
- * Process a single claim: lookup user, send email, and update status.
+ * Process a single claim's notification using a pre-fetched email.
  */
-async function processClaimNotification(claim: typeof claimsSchema.$inferSelect, threeDaysFromNow: Date, thirtyDaysFromNow: Date) {
-  if (!claim.creatorId) {
-    return null;
-  }
-
-  const client = await clerkClient();
-  const user = await client.users.getUser(claim.creatorId);
-  const email = user.emailAddresses.find(e => e.id === user.primaryEmailAddressId)?.emailAddress;
-
-  if (!email) {
-    return null;
-  }
-
+async function processClaimNotification(
+  claim: typeof claimsSchema.$inferSelect,
+  email: string,
+  threeDaysFromNow: Date,
+  thirtyDaysFromNow: Date,
+) {
   const isReserveExpiring = claim.reserveDeadline && new Date(claim.reserveDeadline) <= threeDaysFromNow && !claim.reserveNotificationSent;
   const isPrescriptionExpiring = claim.prescriptionDeadline && new Date(claim.prescriptionDeadline) <= thirtyDaysFromNow && !claim.prescriptionNotificationSent;
 
@@ -97,11 +91,44 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ message: 'No expiring claims found' });
     }
 
-    // SCALABILITY FIX: Process notifications concurrently with limited concurrency
-    // Using Promise.allSettled to ensure failure of one doesn't stop the whole batch
+    // 1. COLLECT ALL UNIQUE USER IDS
+    const userIds = [...new Set(expiringClaims.map(c => c.creatorId).filter(Boolean))] as string[];
+
+    // 2. BATCH FETCH USERS FROM CLERK (Anti N+1)
+    const client = await clerkClient();
+    const clerkUsersResponse = await client.users.getUserList({
+      userId: userIds,
+      limit: userIds.length,
+    });
+
+    const userEmailMap = new Map<string, string>();
+    for (const user of clerkUsersResponse.data) {
+      const email = user.emailAddresses.find(e => e.id === user.primaryEmailAddressId)?.emailAddress;
+      if (email) {
+        userEmailMap.set(user.id, email);
+      }
+    }
+
+    // 3. PROCESS NOTIFICATIONS
     const results = await Promise.allSettled(
-      expiringClaims.map(claim => processClaimNotification(claim, threeDaysFromNow, thirtyDaysFromNow)),
+      expiringClaims.map(async (claim) => {
+        const email = claim.creatorId ? userEmailMap.get(claim.creatorId) : null;
+
+        if (!email) {
+          logger.warn({ claimId: claim.id, creatorId: claim.creatorId }, 'Skip claim: No valid email found for creator');
+          return null;
+        }
+
+        return processClaimNotification(claim, email, threeDaysFromNow, thirtyDaysFromNow);
+      }),
     );
+
+    // 4. LOG ERROR RESULTS FOR OBSERVABILITY
+    results.forEach((res, i) => {
+      if (res.status === 'rejected') {
+        logger.error({ claimId: expiringClaims[i]?.id, error: res.reason }, 'Notification failed for claim');
+      }
+    });
 
     const successful = results.filter(r => r.status === 'fulfilled' && (r as PromiseFulfilledResult<any>).value !== null).length;
 
@@ -111,7 +138,7 @@ export async function GET(req: NextRequest) {
       total: expiringClaims.length,
     });
   } catch (error) {
-    console.error('Cron Job Failed:', error);
+    logger.error({ error }, 'Cron Job Failed');
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

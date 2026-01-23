@@ -9,6 +9,7 @@ import {
 } from 'recharts';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { LABELS } from '@/constants/Labels';
 import { cn } from '@/utils/Helpers';
 
 type ClaimsOverviewProps = {
@@ -20,8 +21,8 @@ type ClaimsOverviewProps = {
 export const ClaimsOverview = ({ open, total, className }: ClaimsOverviewProps) => {
   const closed = total - open;
   const data = [
-    { name: 'Open', value: open, color: '#3b82f6' }, // blue-500
-    { name: 'Closed', value: closed, color: '#e2e8f0' }, // slate-200
+    { name: LABELS.CLAIMS.OPEN, value: open, color: 'hsl(var(--info))' },
+    { name: LABELS.CLAIMS.CLOSED, value: closed, color: 'hsl(var(--muted))' },
   ];
 
   const openPercentage = total > 0 ? (open / total) * 100 : 0;
@@ -29,7 +30,7 @@ export const ClaimsOverview = ({ open, total, className }: ClaimsOverviewProps) 
   return (
     <Card className={cn('col-span-full lg:col-span-3', className)}>
       <CardHeader>
-        <CardTitle className="text-base font-medium">Claims Lifecycle</CardTitle>
+        <CardTitle className="text-base font-medium">{LABELS.CLAIMS.LIFECYCLE}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[200px] w-full">
@@ -50,9 +51,10 @@ export const ClaimsOverview = ({ open, total, className }: ClaimsOverviewProps) 
               </Pie>
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#fff',
-                  borderRadius: '8px',
-                  border: '1px solid #e2e8f0',
+                  backgroundColor: 'hsl(var(--background))',
+                  borderRadius: 'var(--radius)',
+                  border: '1px solid hsl(var(--border))',
+                  color: 'hsl(var(--foreground))',
                 }}
               />
             </PieChart>
@@ -62,23 +64,25 @@ export const ClaimsOverview = ({ open, total, className }: ClaimsOverviewProps) 
         <div className="mt-4 space-y-2">
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
-              <div className="size-3 rounded-full bg-blue-500" />
-              <span className="text-muted-foreground">Open Claims</span>
+              <div className="size-3 rounded-full bg-info" />
+              <span className="text-muted-foreground">{LABELS.CLAIMS.OPEN_CLAIMS}</span>
             </div>
             <span className="font-bold">{open}</span>
           </div>
 
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
-              <div className="size-3 rounded-full bg-slate-200" />
-              <span className="text-muted-foreground">Closed Claims</span>
+              <div className="size-3 rounded-full bg-muted" />
+              <span className="text-muted-foreground">{LABELS.CLAIMS.CLOSED_CLAIMS}</span>
             </div>
             <span className="font-bold">{closed}</span>
           </div>
 
           <div className="pt-2 text-xs text-muted-foreground">
             {openPercentage.toFixed(0)}
-            % of total claims are currently active.
+            %
+            {' '}
+            {LABELS.CLAIMS.ACTIVE_PERCENTAGE}
           </div>
         </div>
       </CardContent>

@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { LABELS } from '@/constants/Labels';
 import type { PoaStatus } from '@/features/procura/actions/procura.actions';
 import { PoaStatusBadge } from '@/features/procura/components/PoaStatusBadge';
 import { GLOBAL_CREMONINI_ID } from '@/features/procura/constants';
@@ -39,16 +40,16 @@ export const ClaimsTable = ({
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead>ID</TableHead>
+              <TableHead>{LABELS.CLAIMS.ID}</TableHead>
               <TableHead>Data</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Ambito</TableHead>
-              <TableHead>Vettore</TableHead>
+              <TableHead>{LABELS.CLAIMS.TYPE}</TableHead>
+              <TableHead>{LABELS.CLAIMS.STATE}</TableHead>
+              <TableHead>{LABELS.CLAIMS.CARRIER}</TableHead>
               <TableHead>Valore</TableHead>
               <TableHead>Riserva</TableHead>
               <TableHead>Prescrizione</TableHead>
-              {showPoaColumn && <TableHead>Procura</TableHead>}
-              <TableHead>Stato</TableHead>
+              {showPoaColumn && <TableHead>{LABELS.PROCURA.ORGANIZATION}</TableHead>}
+              <TableHead>{LABELS.CLAIMS.STATUS}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -56,7 +57,7 @@ export const ClaimsTable = ({
               ? (
                   <TableRow>
                     <TableCell colSpan={showPoaColumn ? 10 : 9} className="h-24 text-center">
-                      Nessun sinistro trovato.
+                      {LABELS.COMMON.NO_DATA}
                     </TableCell>
                   </TableRow>
                 )
