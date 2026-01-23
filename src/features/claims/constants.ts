@@ -25,3 +25,19 @@ export const CLAIM_STATUS_OPTIONS: { value: ClaimStatus; label: string }[] = [
   { value: 'FULL_RECOVERY', label: 'Recupero totale' },
   { value: 'CLOSED', label: 'Chiuso' },
 ];
+
+export const CLAIM_TYPE_OPTIONS = [
+  { value: 'TERRESTRIAL', label: 'Trasporto Terrestre' },
+  { value: 'MARITIME', label: 'Trasporto Marittimo' },
+  { value: 'AIR', label: 'Trasporto Aereo' },
+  { value: 'RAIL', label: 'Trasporto su Rotaia' },
+  { value: 'STOCK_IN_TRANSIT', label: 'Stock in Transit' },
+] as const;
+
+export const CLAIM_STATE_OPTIONS = [
+  { value: 'NATIONAL', label: 'Nazionale' },
+  { value: 'INTERNATIONAL', label: 'Internazionale' },
+] as const;
+
+export type ClaimType = typeof CLAIM_TYPE_OPTIONS[number]['value'];
+export type ClaimState = typeof CLAIM_STATE_OPTIONS[number]['value'];

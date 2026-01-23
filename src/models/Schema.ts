@@ -63,9 +63,20 @@ export const claimStatusEnum = pgEnum('claim_status', [
 ]);
 
 export const claimTypeEnum = pgEnum('claim_type', [
+  'TERRESTRIAL',
+  'MARITIME',
+  'AIR',
+  'RAIL',
+  'STOCK_IN_TRANSIT',
+  // Legacy values kept for compatibility if needed, but not used for new claims
   'TRANSPORT',
   'STOCK',
   'DEPOSIT',
+]);
+
+export const claimStateEnum = pgEnum('claim_state', [
+  'NATIONAL',
+  'INTERNATIONAL',
 ]);
 
 export const claimsSchema = pgTable('claims', {
@@ -77,6 +88,7 @@ export const claimsSchema = pgTable('claims', {
 
   status: claimStatusEnum('status').default('OPEN').notNull(),
   type: claimTypeEnum('type').notNull(),
+  state: claimStateEnum('state').default('NATIONAL').notNull(),
 
   // Core fields
   eventDate: date('event_date').notNull(),
@@ -87,6 +99,14 @@ export const claimsSchema = pgTable('claims', {
   description: text('description'),
   documentUrl: text('document_url'), // Legacy single doc (kept for backwards compat)
   documentPath: text('document_path'), // Supabase Storage path
+
+  // Stock in Transit fields
+  stockInboundDate: date('stock_inbound_date'),
+  stockOutboundDate: date('stock_outbound_date'),
+  hasStockInboundReserve: boolean('has_stock_inbound_reserve').default(false),
+
+  // Legal fields
+  hasGrossNegligence: boolean('has_gross_negligence').default(false),
 
   // Economic fields
   estimatedValue: decimal('estimated_value', { precision: 15, scale: 2 }), // Danno stimato

@@ -1,7 +1,14 @@
 import { z } from 'zod';
 
 export const CreateClaimSchema = z.object({
-  type: z.enum(['TRANSPORT', 'STOCK', 'DEPOSIT']),
+  type: z.enum([
+    'TERRESTRIAL',
+    'MARITIME',
+    'AIR',
+    'RAIL',
+    'STOCK_IN_TRANSIT',
+  ]),
+  state: z.enum(['NATIONAL', 'INTERNATIONAL']),
   eventDate: z.date({
     message: 'Data sinistro obbligatoria',
   }),
@@ -15,6 +22,22 @@ export const CreateClaimSchema = z.object({
   recoveredAmount: z.string().optional(),
   description: z.string().optional(),
   documentPath: z.string().optional(),
+
+  // SIT Fields
+  stockInboundDate: z.date().optional(),
+  stockOutboundDate: z.date().optional(),
+  hasStockInboundReserve: z.boolean().optional(),
+
+  // Legal Fields
+  hasGrossNegligence: z.boolean().optional(),
+}).refine((data) => {
+  if (data.type === 'STOCK_IN_TRANSIT' && data.stockInboundDate && data.stockOutboundDate) {
+    return data.stockInboundDate <= data.stockOutboundDate;
+  }
+  return true;
+}, {
+  message: 'La data di uscita non può essere antecedente alla data di ingresso',
+  path: ['stockOutboundDate'],
 });
 
 export type CreateClaimFormValues = z.infer<typeof CreateClaimSchema>;

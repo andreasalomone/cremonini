@@ -14,7 +14,8 @@ import type { ClaimStatus } from '../constants';
 
 // Types
 export type CreateClaimInput = {
-  type: 'TRANSPORT' | 'STOCK' | 'DEPOSIT';
+  type: 'TERRESTRIAL' | 'MARITIME' | 'AIR' | 'RAIL' | 'STOCK_IN_TRANSIT';
+  state: 'NATIONAL' | 'INTERNATIONAL';
   eventDate: Date;
   location: string;
   ddtCmrNumber?: string;
@@ -23,6 +24,10 @@ export type CreateClaimInput = {
   estimatedValue?: string;
   description?: string;
   documentPath?: string;
+  stockInboundDate?: Date;
+  stockOutboundDate?: Date;
+  hasStockInboundReserve?: boolean;
+  hasGrossNegligence?: boolean;
 };
 
 // Helpers
@@ -86,13 +91,22 @@ export async function createClaim(data: CreateClaimInput) {
 
   // --- AUTOMATED DEADLINE LOGIC ---
   const eventDate = new Date(data.eventDate);
-  const { reserveDeadline, prescriptionDeadline } = calculateDeadlines(eventDate, data.type);
+  const { reserveDeadline, prescriptionDeadline } = calculateDeadlines({
+    eventDate,
+    type: data.type,
+    state: data.state,
+    hasGrossNegligence: data.hasGrossNegligence,
+    stockInboundDate: data.stockInboundDate,
+    stockOutboundDate: data.stockOutboundDate,
+    hasStockInboundReserve: data.hasStockInboundReserve,
+  });
 
   const newClaim: typeof claimsSchema.$inferInsert = {
     orgId,
     creatorId: userId,
     status: 'OPEN',
     type: data.type,
+    state: data.state,
     eventDate: formatDate(eventDate),
     location: data.location,
     ddtCmrNumber: data.ddtCmrNumber,
@@ -103,12 +117,17 @@ export async function createClaim(data: CreateClaimInput) {
     documentPath: data.documentPath,
     reserveDeadline: formatDateNullable(reserveDeadline),
     prescriptionDeadline: formatDateNullable(prescriptionDeadline),
+    stockInboundDate: data.stockInboundDate ? formatDate(data.stockInboundDate) : null,
+    stockOutboundDate: data.stockOutboundDate ? formatDate(data.stockOutboundDate) : null,
+    hasStockInboundReserve: data.hasStockInboundReserve ?? false,
+    hasGrossNegligence: data.hasGrossNegligence ?? false,
   };
 
-  await db.insert(claimsSchema).values(newClaim);
+  const result = await db.insert(claimsSchema).values(newClaim).returning();
+  const newClaimId = result[0]?.id;
 
   revalidatePath('/dashboard/claims');
-  return { success: true };
+  return { success: true, claimId: newClaimId };
 }
 
 export async function updateClaimStatus(claimId: string, newStatus: ClaimStatus) {
@@ -173,7 +192,7 @@ export async function updateClaimStatus(claimId: string, newStatus: ClaimStatus)
     revalidatePath('/dashboard/claims');
     return { success: true };
   } catch (error) {
-    console.error(`[ClaimsAction] Failed to update claim ${claimId} status:`, error);
+    logger.error(`[ClaimsAction] Failed to update claim ${claimId} status:`, error);
     return { success: false, error: 'Database update failed' };
   }
 }

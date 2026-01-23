@@ -10,8 +10,10 @@ import {
 } from '@/components/ui/table';
 import type { PoaStatus } from '@/features/procura/actions/procura.actions';
 import { PoaStatusBadge } from '@/features/procura/components/PoaStatusBadge';
+import { calculateDeadlines } from '@/libs/deadline-logic';
 import type { Claim } from '@/models/Schema';
 
+import { CLAIM_TYPE_OPTIONS } from '../constants';
 import { ClaimStatusSelect } from './ClaimStatusSelect';
 import { DeadlineBadge } from './DeadlineBadge';
 
@@ -35,9 +37,11 @@ export const ClaimsTable = ({
               <TableHead>ID</TableHead>
               <TableHead>Data</TableHead>
               <TableHead>Tipo</TableHead>
+              <TableHead>Ambito</TableHead>
               <TableHead>Vettore</TableHead>
               <TableHead>Valore</TableHead>
-              <TableHead>Scadenza</TableHead>
+              <TableHead>Riserva</TableHead>
+              <TableHead>Prescrizione</TableHead>
               {showPoaColumn && <TableHead>Procura</TableHead>}
               <TableHead>Stato</TableHead>
             </TableRow>
@@ -46,39 +50,56 @@ export const ClaimsTable = ({
             {claims.length === 0
               ? (
                   <TableRow>
-                    <TableCell colSpan={showPoaColumn ? 8 : 7} className="h-24 text-center">
+                    <TableCell colSpan={showPoaColumn ? 10 : 9} className="h-24 text-center">
                       Nessun sinistro trovato.
                     </TableCell>
                   </TableRow>
                 )
               : (
-                  claims.map(claim => (
-                    <TableRow key={claim.id}>
-                      <TableCell className="font-medium">
-                        {claim.id.slice(0, 8)}
-                        ...
-                      </TableCell>
-                      <TableCell>{new Date(claim.eventDate).toLocaleDateString('it-IT')}</TableCell>
-                      <TableCell>{claim.type}</TableCell>
-                      <TableCell>{claim.carrierName || '-'}</TableCell>
-                      <TableCell>
-                        {claim.estimatedValue
-                          ? `€${Number(claim.estimatedValue).toLocaleString('it-IT', { minimumFractionDigits: 2 })}`
-                          : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <DeadlineBadge date={claim.reserveDeadline} />
-                      </TableCell>
-                      {showPoaColumn && (
-                        <TableCell>
-                          <PoaStatusBadge status={poaStatusMap?.get(claim.orgId)} />
+                  claims.map((claim: Claim) => {
+                    const typeLabel = CLAIM_TYPE_OPTIONS.find(opt => opt.value === claim.type)?.label || claim.type;
+                    const stateLabel = claim.state === 'INTERNATIONAL' ? 'Int.' : 'Naz.';
+
+                    // We need to know if it's decadence for the badge
+                    const { isDecadence } = calculateDeadlines({
+                      eventDate: new Date(claim.eventDate),
+                      type: claim.type,
+                      state: claim.state,
+                      hasGrossNegligence: claim.hasGrossNegligence ?? undefined,
+                    });
+
+                    return (
+                      <TableRow key={claim.id}>
+                        <TableCell className="font-medium">
+                          {claim.id.slice(0, 8)}
+                          ...
                         </TableCell>
-                      )}
-                      <TableCell>
-                        <ClaimStatusSelect claimId={claim.id} currentStatus={claim.status} />
-                      </TableCell>
-                    </TableRow>
-                  ))
+                        <TableCell>{new Date(claim.eventDate).toLocaleDateString('it-IT')}</TableCell>
+                        <TableCell className="max-w-[120px] truncate" title={typeLabel}>{typeLabel}</TableCell>
+                        <TableCell>{stateLabel}</TableCell>
+                        <TableCell className="max-w-[120px] truncate">{claim.carrierName || '-'}</TableCell>
+                        <TableCell>
+                          {claim.estimatedValue
+                            ? `€${Number(claim.estimatedValue).toLocaleString('it-IT', { minimumFractionDigits: 2 })}`
+                            : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <DeadlineBadge date={claim.reserveDeadline} />
+                        </TableCell>
+                        <TableCell>
+                          <DeadlineBadge date={claim.prescriptionDeadline} isDecadence={isDecadence} />
+                        </TableCell>
+                        {showPoaColumn && (
+                          <TableCell>
+                            <PoaStatusBadge status={poaStatusMap?.get(claim.orgId)} />
+                          </TableCell>
+                        )}
+                        <TableCell>
+                          <ClaimStatusSelect claimId={claim.id} currentStatus={claim.status} />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
           </TableBody>
         </Table>

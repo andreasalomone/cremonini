@@ -8,9 +8,10 @@ import { Badge } from '@/components/ui/badge';
 
 type DeadlineBadgeProps = {
   date: Date | string | null;
+  isDecadence?: boolean;
 };
 
-export const DeadlineBadge = ({ date }: DeadlineBadgeProps) => {
+export const DeadlineBadge = ({ date, isDecadence }: DeadlineBadgeProps) => {
   if (!date) {
     return <span className="text-muted-foreground">-</span>;
   }
@@ -32,15 +33,24 @@ export const DeadlineBadge = ({ date }: DeadlineBadgeProps) => {
 
   if (isUrgent) {
     return (
-      <Badge variant="outline" className="border-orange-500 bg-orange-50 text-orange-700 hover:bg-orange-100">
-        URGENTE
+      <Badge
+        variant="outline"
+        className={isDecadence
+          ? 'animate-pulse border-red-600 bg-red-50 text-red-700'
+          : 'border-orange-500 bg-orange-50 text-orange-700 hover:bg-orange-100'}
+      >
+        {isDecadence ? 'PERENTORIO' : 'URGENTE'}
       </Badge>
     );
   }
 
   return (
-    <Badge variant="secondary" className="font-normal text-muted-foreground">
+    <Badge
+      variant={isDecadence ? 'destructive' : 'secondary'}
+      className={isDecadence ? 'opacity-90' : 'font-normal text-muted-foreground'}
+    >
       {format(deadline, 'dd/MM/yyyy', { locale: it })}
+      {isDecadence && ' (!)'}
     </Badge>
   );
 };
