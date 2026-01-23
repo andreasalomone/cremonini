@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 import { Env } from '@/libs/Env';
 import { logger } from '@/libs/Logger';
+import { validateFile } from '@/libs/storage-constants';
 
 const BUCKET = Env.NEXT_PUBLIC_STORAGE_BUCKET_NAME;
 
@@ -22,15 +23,6 @@ function getSupabaseClient(): SupabaseClient {
 
 export type StorageFolder = 'claims' | 'documents' | 'procura';
 
-const ALLOWED_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'application/pdf',
-];
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB (free tier limit)
-
 /**
  * Upload a file to Supabase Storage via FormData (server action compatible)
  */
@@ -46,11 +38,9 @@ export async function uploadFile(
   }
 
   // Validation
-  if (!ALLOWED_TYPES.includes(file.type)) {
-    throw new Error('Tipo file non valido (solo immagini o PDF)');
-  }
-  if (file.size > MAX_FILE_SIZE) {
-    throw new Error('File supera il limite di 50MB');
+  const validation = validateFile(file);
+  if (!validation.valid) {
+    throw new Error(validation.error);
   }
 
   const ext = file.name.split('.').pop();

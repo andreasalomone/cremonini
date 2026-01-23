@@ -6,6 +6,7 @@ import { useCallback, useRef, useState } from 'react';
 
 import { Input } from '@/components/ui/input';
 import { uploadFile } from '@/features/storage/actions/storage.actions';
+import { validateFile } from '@/libs/storage-constants';
 import { cn } from '@/utils/Helpers';
 
 type FileStatus = {
@@ -24,22 +25,13 @@ type FileUploaderProps = {
   onUploadError?: (error: Error) => void;
 };
 
-const ALLOWED_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'application/pdf',
-];
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-
 /**
  * File Uploader with drag-and-drop support
  * Uses Supabase Storage via server actions
  */
 export function FileUploader({
   folder,
-  accept = '.pdf,.png,.jpg,.jpeg,.gif,.webp',
+  accept = '.pdf,.png,.jpg,.jpeg,.gif,.webp,.eml',
   onUploadComplete,
   onUploadError,
 }: FileUploaderProps) {
@@ -56,11 +48,9 @@ export function FileUploader({
 
       try {
         // Client-side validation
-        if (!ALLOWED_TYPES.includes(fileItem.file.type)) {
-          throw new Error('Tipo file non valido (solo immagini o PDF)');
-        }
-        if (fileItem.file.size > MAX_FILE_SIZE) {
-          throw new Error('File supera il limite di 50MB');
+        const validation = validateFile(fileItem.file);
+        if (!validation.valid) {
+          throw new Error(validation.error);
         }
 
         setFiles(prev =>
@@ -240,7 +230,7 @@ export function FileUploader({
               Carica documenti
             </p>
             <p className="text-sm text-muted-foreground">
-              PDF, PNG, JPG (max 50MB)
+              PDF, PNG, JPG, EML (max 50MB)
             </p>
           </div>
         </div>
