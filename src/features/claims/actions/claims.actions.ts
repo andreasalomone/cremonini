@@ -8,9 +8,10 @@ import { db } from '@/libs/DB';
 import { calculateDeadlines, calculateExtendedDeadline } from '@/libs/deadline-logic';
 import { Env } from '@/libs/Env';
 import { logger } from '@/libs/Logger';
-import { claimsSchema } from '@/models/Schema';
+import { getSignedUrl } from '@/libs/supabase-storage';
+import { claimActivitiesSchema, claimsSchema } from '@/models/Schema';
 
-import type { ClaimStatus } from '../constants';
+import { CLAIM_STATUS_OPTIONS, type ClaimStatus } from '../constants';
 
 // Types
 export type CreateClaimInput = {
@@ -50,6 +51,33 @@ const sanitizeCurrency = (val?: string): string | null => {
 };
 
 /**
+ * Standardizes activity recording inside a transaction.
+ */
+async function recordActivity(
+  tx: any,
+  claimId: string,
+  userId: string,
+  type: 'CREATED' | 'STATUS_CHANGE' | 'DOC_UPLOAD' | 'DOC_DELETE' | 'INFO_UPDATE' | 'ECONOMICS_UPDATE',
+  description: string,
+  metadata?: any,
+) {
+  try {
+    await tx.insert(claimActivitiesSchema).values({
+      claimId,
+      userId,
+      actionType: type,
+      description,
+      metadata,
+    });
+  } catch (error) {
+    logger.error(`[ClaimsAction] Failed to record activity for claim ${claimId}:`, error);
+    // We don't throw here to avoid rolling back the main transaction if logging fails,
+    // OR we could throw if we want strict audit trail. In this case, let's keep it strict.
+    throw error;
+  }
+}
+
+/**
  * "God Mode" Data Access
  * S&A Admin sees ALL (limited to 100 for scalability).
  * Company Rep sees ONLY their org.
@@ -81,6 +109,46 @@ export async function getClaims() {
   } catch (error) {
     logger.error('[ClaimsAction] getClaims failed:', error);
     return [];
+  }
+}
+
+/**
+ * Fetch a single claim with its full context.
+ * Enforces organization-level access control.
+ */
+export async function getClaimById(id: string) {
+  try {
+    const { orgId } = await auth();
+
+    if (!orgId) {
+      logger.warn('[ClaimsAction] No orgId found in auth context');
+      return null;
+    }
+
+    const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
+
+    const result = await db.query.claimsSchema.findFirst({
+      where: and(
+        eq(claimsSchema.id, id),
+        isSuperAdmin ? undefined : eq(claimsSchema.orgId, orgId),
+      ),
+      with: {
+        documents: true,
+        activities: {
+          orderBy: desc(claimActivitiesSchema.createdAt),
+        },
+      },
+    });
+
+    if (!result) {
+      logger.warn(`[ClaimsAction] Claim ${id} not found or access denied for org ${orgId}`);
+      return null;
+    }
+
+    return result;
+  } catch (error) {
+    logger.error(`[ClaimsAction] getClaimById failed for ${id}:`, error);
+    return null;
   }
 }
 
@@ -127,11 +195,27 @@ export async function createClaim(data: CreateClaimInput) {
     hasGrossNegligence: data.hasGrossNegligence ?? false,
   };
 
-  const result = await db.insert(claimsSchema).values(newClaim).returning();
-  const newClaimId = result[0]?.id;
+  const result = await db.transaction(async (tx) => {
+    const [inserted] = await tx.insert(claimsSchema).values(newClaim).returning();
+
+    if (!inserted) {
+      throw new Error('Failed to insert claim');
+    }
+
+    await recordActivity(
+      tx,
+      inserted.id,
+      userId,
+      'CREATED',
+      'Sinistro aperto',
+      { status: 'OPEN' },
+    );
+
+    return inserted;
+  });
 
   revalidatePath('/dashboard/claims');
-  return { success: true, claimId: newClaimId };
+  return { success: true, claimId: result.id };
 }
 
 export async function updateClaimStatus(claimId: string, newStatus: ClaimStatus) {
@@ -188,13 +272,43 @@ export async function updateClaimStatus(claimId: string, newStatus: ClaimStatus)
   }
 
   try {
-    await db
-      .update(claimsSchema)
-      .set(dataToUpdate)
-      .where(eq(claimsSchema.id, claimId));
+    const result = await db.transaction(async (tx) => {
+      // 1. Fetch current status for audit trail and verify ownership
+      const existing = await tx.query.claimsSchema.findFirst({
+        where: and(
+          eq(claimsSchema.id, claimId),
+          isSuperAdmin ? undefined : eq(claimsSchema.orgId, orgId!),
+        ),
+        columns: { status: true },
+      });
+
+      if (!existing) {
+        throw new Error('Claim not found or access denied');
+      }
+
+      // 2. Update the claim
+      await tx
+        .update(claimsSchema)
+        .set(dataToUpdate)
+        .where(eq(claimsSchema.id, claimId));
+
+      // 3. record the activity
+      const statusLabel = CLAIM_STATUS_OPTIONS.find(opt => opt.value === newStatus)?.label || newStatus;
+      await recordActivity(
+        tx,
+        claimId,
+        userId,
+        'STATUS_CHANGE',
+        `Stato cambiato in: ${statusLabel}`,
+        { oldStatus: existing.status, newStatus },
+      );
+
+      return { success: true };
+    });
 
     revalidatePath('/dashboard/claims');
-    return { success: true };
+    revalidatePath(`/dashboard/claims/${claimId}`);
+    return result;
   } catch (error) {
     logger.error(`[ClaimsAction] Failed to update claim ${claimId} status:`, error);
     return { success: false, error: 'Database update failed' };
@@ -240,22 +354,61 @@ export async function updateClaimEconomics(claimId: string, data: UpdateClaimEco
   }
 
   try {
-    await db
-      .update(claimsSchema)
-      .set({
-        estimatedValue: sanitizeCurrency(data.estimatedValue),
-        verifiedDamage: sanitizeCurrency(data.verifiedDamage),
-        claimedAmount: sanitizeCurrency(data.claimedAmount),
-        recoveredAmount: sanitizeCurrency(data.recoveredAmount),
-        estimatedRecovery: sanitizeCurrency(data.estimatedRecovery),
-        updatedAt: new Date(),
-      })
-      .where(eq(claimsSchema.id, claimId));
+    const result = await db.transaction(async (tx) => {
+      await tx
+        .update(claimsSchema)
+        .set({
+          estimatedValue: sanitizeCurrency(data.estimatedValue),
+          verifiedDamage: sanitizeCurrency(data.verifiedDamage),
+          claimedAmount: sanitizeCurrency(data.claimedAmount),
+          recoveredAmount: sanitizeCurrency(data.recoveredAmount),
+          estimatedRecovery: sanitizeCurrency(data.estimatedRecovery),
+          updatedAt: new Date(),
+        })
+        .where(eq(claimsSchema.id, claimId));
+
+      await recordActivity(
+        tx,
+        claimId,
+        userId,
+        'ECONOMICS_UPDATE',
+        'Dati economici aggiornati',
+        data,
+      );
+
+      return { success: true };
+    });
 
     revalidatePath('/dashboard/claims');
-    return { success: true };
+    revalidatePath(`/dashboard/claims/${claimId}`);
+    return result;
   } catch (error) {
     logger.error(`[ClaimsAction] Failed to update economics for ${claimId}:`, error);
     return { success: false, error: 'Database update failed' };
+  }
+}
+
+/**
+ * Get a temporary signed URL for viewing/downloading a document.
+ */
+export async function getDocumentUrl(path: string) {
+  const { orgId } = await auth();
+  if (!orgId) {
+    throw new Error('Unauthorized');
+  }
+
+  // 🔒 CRITICAL SECURITY CHECK: Ensure the path starts with the user's orgId
+  // Paths are stored as "org_id/folder/uuid.ext"
+  const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
+  if (!isSuperAdmin && !path.startsWith(`${orgId}/`)) {
+    logger.error(`[ClaimsAction] Security Alert: User ${orgId} attempted to access cross-org path: ${path}`);
+    throw new Error('Access Denied');
+  }
+
+  try {
+    return await getSignedUrl(path);
+  } catch (error) {
+    logger.error(`[ClaimsAction] Failed to get signed URL for ${path}:`, error);
+    return null;
   }
 }

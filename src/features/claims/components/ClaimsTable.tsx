@@ -13,6 +13,8 @@ import { PoaStatusBadge } from '@/features/procura/components/PoaStatusBadge';
 import { calculateDeadlines } from '@/libs/deadline-logic';
 import type { Claim } from '@/models/Schema';
 
+import { useRouter } from 'next/navigation';
+
 import { CLAIM_TYPE_OPTIONS } from '../constants';
 import { ClaimStatusSelect } from './ClaimStatusSelect';
 import { DeadlineBadge } from './DeadlineBadge';
@@ -28,12 +30,14 @@ export const ClaimsTable = ({
   poaStatusMap,
   showPoaColumn = false,
 }: ClaimsTableProps) => {
+  const router = useRouter();
+
   return (
     <div className="rounded-md border">
       <div className="relative w-full overflow-auto">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="hover:bg-transparent">
               <TableHead>ID</TableHead>
               <TableHead>Data</TableHead>
               <TableHead>Tipo</TableHead>
@@ -68,8 +72,16 @@ export const ClaimsTable = ({
                       hasGrossNegligence: claim.hasGrossNegligence ?? undefined,
                     });
 
+                    const handleRowClick = () => {
+                      router.push(`/dashboard/claims/${claim.id}`);
+                    };
+
                     return (
-                      <TableRow key={claim.id}>
+                      <TableRow
+                        key={claim.id}
+                        className="cursor-pointer transition-colors hover:bg-muted/50"
+                        onClick={handleRowClick}
+                      >
                         <TableCell className="font-medium">
                           {claim.id.slice(0, 8)}
                           ...
@@ -94,7 +106,7 @@ export const ClaimsTable = ({
                             <PoaStatusBadge status={poaStatusMap?.get(claim.orgId)} />
                           </TableCell>
                         )}
-                        <TableCell>
+                        <TableCell onClick={e => e.stopPropagation()}>
                           <ClaimStatusSelect claimId={claim.id} currentStatus={claim.status} />
                         </TableCell>
                       </TableRow>

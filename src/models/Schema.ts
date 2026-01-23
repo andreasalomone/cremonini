@@ -4,6 +4,7 @@ import {
   date,
   decimal,
   index,
+  jsonb,
   pgEnum,
   pgTable,
   serial,
@@ -172,6 +173,35 @@ export const documentsSchema = pgTable('documents', {
 export type Document = typeof documentsSchema.$inferSelect;
 export type NewDocument = typeof documentsSchema.$inferInsert;
 
+// --- CLAIM ACTIVITIES MODULE ---
+
+export const activityTypeEnum = pgEnum('activity_type', [
+  'CREATED',
+  'STATUS_CHANGE',
+  'DOC_UPLOAD',
+  'DOC_DELETE',
+  'INFO_UPDATE',
+  'ECONOMICS_UPDATE',
+]);
+
+export const claimActivitiesSchema = pgTable('claim_activities', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  claimId: text('claim_id')
+    .references(() => claimsSchema.id, { onDelete: 'cascade' })
+    .notNull(),
+  userId: text('user_id'), // Clerk User ID of the operator
+  actionType: activityTypeEnum('action_type').notNull(),
+  description: text('description').notNull(),
+  metadata: jsonb('metadata'), // JSONB for queryable structured data
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+});
+
+// Type inference exports
+export type ClaimActivity = typeof claimActivitiesSchema.$inferSelect;
+export type NewClaimActivity = typeof claimActivitiesSchema.$inferInsert;
+
 // --- POWER OF ATTORNEY MODULE ---
 
 export const powerOfAttorneySchema = pgTable('power_of_attorney', {
@@ -199,11 +229,19 @@ export type NewPowerOfAttorney = typeof powerOfAttorneySchema.$inferInsert;
 
 export const claimsRelations = relations(claimsSchema, ({ many }) => ({
   documents: many(documentsSchema),
+  activities: many(claimActivitiesSchema),
 }));
 
 export const documentsRelations = relations(documentsSchema, ({ one }) => ({
   claim: one(claimsSchema, {
     fields: [documentsSchema.claimId],
+    references: [claimsSchema.id],
+  }),
+}));
+
+export const claimActivitiesRelations = relations(claimActivitiesSchema, ({ one }) => ({
+  claim: one(claimsSchema, {
+    fields: [claimActivitiesSchema.claimId],
     references: [claimsSchema.id],
   }),
 }));

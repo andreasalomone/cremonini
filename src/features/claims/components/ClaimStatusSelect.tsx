@@ -33,7 +33,8 @@ export const ClaimStatusSelect = ({
         if (result.success) {
           toast.success('Stato aggiornato');
         } else {
-          toast.error(result.error || 'Errore durante l\'aggiornamento');
+          const errorMessage = 'error' in result ? (result.error as string) : 'Errore durante l\'aggiornamento';
+          toast.error(errorMessage);
         }
       } catch {
         toast.error('Errore imprevisto');

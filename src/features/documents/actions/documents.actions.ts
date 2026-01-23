@@ -6,8 +6,7 @@ import { revalidatePath } from 'next/cache';
 
 import { db } from '@/libs/DB';
 import { Env } from '@/libs/Env';
-import type { NewDocument } from '@/models/Schema';
-import { claimsSchema, documentsSchema } from '@/models/Schema';
+import { claimActivitiesSchema, claimsSchema, documentsSchema, type NewDocument } from '@/models/Schema';
 
 /**
  * Add a document to a claim.
@@ -39,15 +38,28 @@ export async function addDocument(
     throw new Error('Claim not found or access denied');
   }
 
-  const [newDoc] = await db.insert(documentsSchema).values({
-    claimId,
-    type,
-    url: path, // Keep url populated for backwards compat
-    path,
-    filename,
-  }).returning();
+  const newDoc = await db.transaction(async (tx) => {
+    const [insertedDoc] = await tx.insert(documentsSchema).values({
+      claimId,
+      type,
+      url: path, // Keep url populated for backwards compat
+      path,
+      filename,
+    }).returning();
+
+    await tx.insert(claimActivitiesSchema).values({
+      claimId,
+      userId,
+      actionType: 'DOC_UPLOAD',
+      description: `Documento caricato: ${filename || type}`,
+      metadata: { type, filename, path },
+    });
+
+    return insertedDoc;
+  });
 
   revalidatePath('/dashboard/claims');
+  revalidatePath(`/dashboard/claims/${claimId}`);
   return newDoc;
 }
 
@@ -110,9 +122,20 @@ export async function deleteDocument(documentId: string) {
     throw new Error('Access denied');
   }
 
-  await db.delete(documentsSchema).where(eq(documentsSchema.id, documentId));
+  await db.transaction(async (tx) => {
+    await tx.delete(documentsSchema).where(eq(documentsSchema.id, documentId));
+
+    await tx.insert(claimActivitiesSchema).values({
+      claimId: doc.claimId,
+      userId,
+      actionType: 'DOC_DELETE',
+      description: `Documento eliminato: ${doc.filename || doc.type}`,
+      metadata: { type: doc.type, filename: doc.filename },
+    });
+  });
 
   revalidatePath('/dashboard/claims');
+  revalidatePath(`/dashboard/claims/${doc.claimId}`);
   return { success: true };
 }
 

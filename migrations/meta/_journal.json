@@ -64,6 +64,13 @@
       "when": 1769157716438,
       "tag": "0008_dapper_lizard",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1769160381821,
+      "tag": "0009_worthless_red_shift",
+      "breakpoints": true
     }
   ]
 }
