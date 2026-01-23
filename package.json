@@ -48,6 +48,8 @@
     "@supabase/supabase-js": "^2.91.0",
     "@t3-oss/env-nextjs": "^0.11.1",
     "@tanstack/react-table": "^8.20.5",
+    "baseline-browser-mapping": "^2.9.17",
+    "caniuse-lite": "^1.0.30001766",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
