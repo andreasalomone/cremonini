@@ -611,10 +611,13 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
           )}
         />
 
-        <Button type="submit" disabled={isSubmitting || !isFormValid} className="w-full">
-          {isSubmitting
+        <Button type="submit" disabled={isSubmitting || isUploading || !isFormValid} className="w-full">
+          {isSubmitting || isUploading
             ? (
-                <Loader2 className="mr-2 size-4 animate-spin" />
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  {isUploading ? 'Caricamento file...' : 'Salvataggio...'}
+                </>
               )
             : (
                 'Crea Sinistro'

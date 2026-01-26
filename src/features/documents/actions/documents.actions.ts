@@ -6,8 +6,8 @@ import { revalidatePath } from 'next/cache';
 
 import { db } from '@/libs/DB';
 import { Env } from '@/libs/Env';
-import { claimActivitiesSchema, claimsSchema, documentsSchema, type NewDocument } from '@/models/Schema';
 import { logger } from '@/libs/Logger';
+import { claimActivitiesSchema, claimsSchema, documentsSchema, type NewDocument } from '@/models/Schema';
 
 /**
  * Add a document to a claim.

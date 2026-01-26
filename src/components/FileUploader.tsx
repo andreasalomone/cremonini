@@ -235,22 +235,22 @@ export function FileUploader({
           {files.map(item => (
             <motion.div
               key={item.id}
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+              initial={{ opacity: 0, y: 10, filter: 'blur(10px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, scale: 0.95, filter: 'blur(10px)', transition: { duration: 0.2 } }}
               layout
               className={cn(
-                'relative overflow-hidden rounded-2xl border bg-card p-3 shadow-sm',
-                item.status === 'error' ? 'border-destructive/50' : 'border-border/50',
+                'relative overflow-hidden rounded-2xl border bg-card/60 backdrop-blur-md p-3 shadow-sm transition-all hover:shadow-md hover:bg-card/80',
+                item.status === 'error' ? 'border-destructive/30' : 'border-border/40',
               )}
             >
-              {/* Progress Bar */}
-              {item.status !== 'error' && (
+              {/* Progress Bar (refined) */}
+              {item.status !== 'error' && item.progress < 100 && (
                 <motion.div
-                  className="absolute inset-y-0 left-0 bg-primary/5"
+                  className="absolute inset-y-0 left-0 border-r border-primary/20 bg-primary/10"
                   initial={{ width: '0%' }}
                   animate={{ width: `${item.progress}%` }}
-                  transition={{ duration: 0.3, ease: 'easeOut' }}
+                  transition={{ duration: 0.5, ease: 'easeInOut' }}
                 />
               )}
 

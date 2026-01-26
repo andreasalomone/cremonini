@@ -7,8 +7,8 @@ import { DEADLINES } from '@/constants/Deadlines';
 import { ECONOMICS } from '@/constants/Economics';
 import { checkIsSuperAdmin } from '@/libs/auth-utils';
 import { db } from '@/libs/DB';
-import { claimsSchema } from '@/models/Schema';
 import { logger } from '@/libs/Logger';
+import { claimsSchema } from '@/models/Schema';
 
 export type DashboardStats = {
   totalClaims: number;

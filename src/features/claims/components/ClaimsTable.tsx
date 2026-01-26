@@ -28,6 +28,10 @@ type ClaimsTableProps = {
   readOnly?: boolean;
 };
 
+const ID_DISPLAY_LENGTH = 8;
+const BASE_COLUMN_COUNT = 9;
+const POA_COLUMN_COUNT = 10;
+
 export const ClaimsTable = ({
   claims,
   poaStatusMap,
@@ -58,7 +62,7 @@ export const ClaimsTable = ({
             {claims.length === 0
               ? (
                   <TableRow>
-                    <TableCell colSpan={showPoaColumn ? 10 : 9} className="h-24 text-center">
+                    <TableCell colSpan={showPoaColumn ? POA_COLUMN_COUNT : BASE_COLUMN_COUNT} className="h-24 text-center">
                       {LABELS.COMMON.NO_DATA}
                     </TableCell>
                   </TableRow>
@@ -80,14 +84,25 @@ export const ClaimsTable = ({
                       router.push(`/dashboard/claims/${claim.id}`);
                     };
 
+                    const handleKeyDown = (e: React.KeyboardEvent) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleRowClick();
+                      }
+                    };
+
                     return (
                       <TableRow
                         key={claim.id}
-                        className="cursor-pointer transition-colors hover:bg-muted/50"
+                        className="cursor-pointer transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         onClick={handleRowClick}
+                        onKeyDown={handleKeyDown}
+                        tabIndex={0}
+                        role="link"
+                        aria-label={`Visualizza dettagli sinistro ${claim.id.slice(0, ID_DISPLAY_LENGTH)}...`}
                       >
                         <TableCell className="font-medium">
-                          {claim.id.slice(0, 8)}
+                          {claim.id.slice(0, ID_DISPLAY_LENGTH)}
                           ...
                         </TableCell>
                         <TableCell>{new Date(claim.eventDate).toLocaleDateString('it-IT')}</TableCell>
