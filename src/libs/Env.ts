@@ -16,7 +16,7 @@ export const Env = createEnv({
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
     NEXT_PUBLIC_CLERK_SIGN_IN_URL: z.string().min(1),
     NEXT_PUBLIC_ADMIN_ORG_ID: z.string().min(1),
-    NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
+    NEXT_PUBLIC_SUPABASE_URL: z.string().min(1),
     NEXT_PUBLIC_STORAGE_BUCKET_NAME: z.string().min(1),
   },
   shared: {

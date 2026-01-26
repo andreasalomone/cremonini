@@ -4,15 +4,19 @@ import { getDashboardStats } from '@/features/dashboard/actions/dashboard.action
 import { ClaimsOverview } from '@/features/dashboard/components/ClaimsOverview';
 import { StatsGrid } from '@/features/dashboard/components/StatsGrid';
 import { logger } from '@/libs/Logger';
+import { serialize } from '@/utils/serialization';
 
 // Prevent static pre-rendering - this page requires runtime database access
 export const dynamic = 'force-dynamic';
+
+// ...
 
 export default async function DashboardPage() {
   logger.info('[DashboardPage] Starting data fetch...');
   const stats = await getDashboardStats();
   logger.info('[DashboardPage] Stats fetched successfully');
-  const claims = await getClaims();
+  const rawClaims = await getClaims();
+  const claims = serialize(rawClaims);
   logger.info('[DashboardPage] Claims fetched successfully');
 
   return (
