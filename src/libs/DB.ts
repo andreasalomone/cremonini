@@ -2,7 +2,7 @@ import path from 'node:path';
 
 import { PGlite } from '@electric-sql/pglite';
 import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
-import { migrate as migratePg } from 'drizzle-orm/node-postgres/migrator';
+// import { migrate as migratePg } from 'drizzle-orm/node-postgres/migrator'; // Removed to prevent runtime migration crashes
 import { drizzle as drizzlePglite, type PgliteDatabase } from 'drizzle-orm/pglite';
 import { migrate as migratePglite } from 'drizzle-orm/pglite/migrator';
 import { PHASE_PRODUCTION_BUILD } from 'next/dist/shared/lib/constants';
@@ -28,9 +28,6 @@ if (process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD) {
   await client.connect();
 
   drizzle = drizzlePg(client, { schema });
-  await migratePg(drizzle, {
-    migrationsFolder: path.join(process.cwd(), 'migrations'),
-  });
 } else {
   // Stores the db connection in the global scope to prevent multiple instances due to hot reloading with Next.js
   const global = globalThis as unknown as { client: PGlite; drizzle: PgliteDatabase<typeof schema> };
