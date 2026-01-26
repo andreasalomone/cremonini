@@ -6,6 +6,7 @@ describe('serialization utility', () => {
   it('should serialize Date objects to ISO strings', () => {
     const date = new Date('2023-01-01T00:00:00.000Z');
     const result = serialize(date);
+
     expect(result).toBe('2023-01-01T00:00:00.000Z');
   });
 

@@ -6,7 +6,7 @@ export const Env = createEnv({
     CLERK_SECRET_KEY: z.string().min(1),
     DATABASE_URL: z.string().optional(),
     LOGTAIL_SOURCE_TOKEN: z.string().optional(),
-    STRIPE_SECRET_KEY: z.string().min(1),
+    STRIPE_SECRET_KEY: z.string().optional(),
     RESEND_API_KEY: z.string().min(1),
     CRON_SECRET: z.string().optional(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
