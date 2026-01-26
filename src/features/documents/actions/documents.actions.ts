@@ -18,49 +18,54 @@ export async function addDocument(
   path: string,
   filename?: string,
 ) {
-  const { orgId, userId } = await auth();
+  try {
+    const { orgId, userId } = await auth();
 
-  if (!orgId || !userId) {
-    throw new Error('Unauthorized: No Organization or User context');
-  }
+    if (!orgId || !userId) {
+      throw new Error('Unauthorized: No Organization or User context');
+    }
 
-  // Verify claim belongs to org (unless superadmin)
-  const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
+    // Verify claim belongs to org (unless superadmin)
+    const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
 
-  const claim = await db.query.claimsSchema.findFirst({
-    where: isSuperAdmin
-      ? eq(claimsSchema.id, claimId)
-      : and(eq(claimsSchema.id, claimId), eq(claimsSchema.orgId, orgId)),
-    columns: { id: true },
-  });
-
-  if (!claim) {
-    throw new Error('Claim not found or access denied');
-  }
-
-  const newDoc = await db.transaction(async (tx) => {
-    const [insertedDoc] = await tx.insert(documentsSchema).values({
-      claimId,
-      type,
-      url: path, // Keep url populated for backwards compat
-      path,
-      filename,
-    }).returning();
-
-    await tx.insert(claimActivitiesSchema).values({
-      claimId,
-      userId,
-      actionType: 'DOC_UPLOAD',
-      description: `Documento caricato: ${filename || type}`,
-      metadata: { type, filename, path },
+    const claim = await db.query.claimsSchema.findFirst({
+      where: isSuperAdmin
+        ? eq(claimsSchema.id, claimId)
+        : and(eq(claimsSchema.id, claimId), eq(claimsSchema.orgId, orgId)),
+      columns: { id: true },
     });
 
-    return insertedDoc;
-  });
+    if (!claim) {
+      throw new Error('Claim not found or access denied');
+    }
 
-  revalidatePath('/dashboard/claims');
-  revalidatePath(`/dashboard/claims/${claimId}`);
-  return newDoc;
+    const newDoc = await db.transaction(async (tx) => {
+      const [insertedDoc] = await tx.insert(documentsSchema).values({
+        claimId,
+        type,
+        url: path, // Keep url populated for backwards compat
+        path,
+        filename,
+      }).returning();
+
+      await tx.insert(claimActivitiesSchema).values({
+        claimId,
+        userId,
+        actionType: 'DOC_UPLOAD',
+        description: `Documento caricato: ${filename || type}`,
+        metadata: { type, filename, path },
+      });
+
+      return insertedDoc;
+    });
+
+    revalidatePath('/dashboard/claims');
+    revalidatePath(`/dashboard/claims/${claimId}`);
+    return newDoc;
+  } catch (error) {
+    logger.error('[DocumentsAction] addDocument failed:', error);
+    throw error;
+  }
 }
 
 /**
@@ -68,30 +73,35 @@ export async function addDocument(
  * Respects org-level access control.
  */
 export async function getDocumentsByClaimId(claimId: string) {
-  const { orgId } = await auth();
+  try {
+    const { orgId } = await auth();
 
-  if (!orgId) {
+    if (!orgId) {
+      return [];
+    }
+
+    const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
+
+    // Verify claim ownership first
+    const claim = await db.query.claimsSchema.findFirst({
+      where: isSuperAdmin
+        ? eq(claimsSchema.id, claimId)
+        : and(eq(claimsSchema.id, claimId), eq(claimsSchema.orgId, orgId)),
+      columns: { id: true },
+    });
+
+    if (!claim) {
+      return [];
+    }
+
+    return await db.query.documentsSchema.findMany({
+      where: eq(documentsSchema.claimId, claimId),
+      orderBy: documentsSchema.createdAt,
+    });
+  } catch (error) {
+    logger.error('[DocumentsAction] getDocumentsByClaimId failed:', error);
     return [];
   }
-
-  const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
-
-  // Verify claim ownership first
-  const claim = await db.query.claimsSchema.findFirst({
-    where: isSuperAdmin
-      ? eq(claimsSchema.id, claimId)
-      : and(eq(claimsSchema.id, claimId), eq(claimsSchema.orgId, orgId)),
-    columns: { id: true },
-  });
-
-  if (!claim) {
-    return [];
-  }
-
-  return await db.query.documentsSchema.findMany({
-    where: eq(documentsSchema.claimId, claimId),
-    orderBy: documentsSchema.createdAt,
-  });
 }
 
 /**
@@ -99,44 +109,50 @@ export async function getDocumentsByClaimId(claimId: string) {
  * Verifies claim ownership via join before allowing deletion.
  */
 export async function deleteDocument(documentId: string) {
-  const { orgId, userId } = await auth();
+  try {
+    const { orgId, userId } = await auth();
 
-  if (!orgId || !userId) {
-    throw new Error('Unauthorized: No Organization or User context');
-  }
+    if (!orgId || !userId) {
+      throw new Error('Unauthorized: No Organization or User context');
+    }
 
-  const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
+    const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
 
-  // Get document with claim info for ownership check
-  const doc = await db.query.documentsSchema.findFirst({
-    where: eq(documentsSchema.id, documentId),
-    with: { claim: { columns: { orgId: true } } },
-  });
-
-  if (!doc) {
-    throw new Error('Document not found');
-  }
-
-  // Verify ownership
-  if (!isSuperAdmin && doc.claim.orgId !== orgId) {
-    throw new Error('Access denied');
-  }
-
-  await db.transaction(async (tx) => {
-    await tx.delete(documentsSchema).where(eq(documentsSchema.id, documentId));
-
-    await tx.insert(claimActivitiesSchema).values({
-      claimId: doc.claimId,
-      userId,
-      actionType: 'DOC_DELETE',
-      description: `Documento eliminato: ${doc.filename || doc.type}`,
-      metadata: { type: doc.type, filename: doc.filename },
+    // Get document with claim info for ownership check
+    const doc = await db.query.documentsSchema.findFirst({
+      where: eq(documentsSchema.id, documentId),
+      with: { claim: { columns: { orgId: true } } },
     });
-  });
 
-  revalidatePath('/dashboard/claims');
-  revalidatePath(`/dashboard/claims/${doc.claimId}`);
-  return { success: true };
+    if (!doc) {
+      throw new Error('Document not found');
+    }
+
+    // Verify ownership
+    if (!isSuperAdmin && doc.claim.orgId !== orgId) {
+      throw new Error('Access denied');
+    }
+
+    await db.transaction(async (tx) => {
+      await tx.delete(documentsSchema).where(eq(documentsSchema.id, documentId));
+
+      await tx.insert(claimActivitiesSchema).values({
+        claimId: doc.claimId,
+        userId,
+        actionType: 'DOC_DELETE',
+        description: `Documento eliminato: ${doc.filename || doc.type}`,
+        metadata: { type: doc.type, filename: doc.filename },
+      });
+    });
+
+    revalidatePath('/dashboard/claims');
+    revalidatePath(`/dashboard/claims/${doc.claimId}`);
+    return { success: true };
+  } catch (error) {
+    logger.error('[DocumentsAction] deleteDocument failed:', error);
+    // Return typed error response rather than throwing if client expects it, or rethrow
+    throw error;
+  }
 }
 
 // Document type labels in Italian

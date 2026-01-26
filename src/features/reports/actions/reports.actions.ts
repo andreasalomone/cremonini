@@ -30,27 +30,27 @@ export async function getReportBySociety(
   startDate?: string,
   endDate?: string,
 ): Promise<SocietyReport[]> {
-  const { orgId } = await auth();
-
-  if (!orgId) {
-    throw new Error('Unauthorized');
-  }
-
-  const isSuperAdmin = checkIsSuperAdmin(orgId);
-
-  if (!isSuperAdmin) {
-    throw new Error('Reports are S&A admin only');
-  }
-
-  const conditions = [];
-  if (startDate) {
-    conditions.push(gte(claimsSchema.createdAt, new Date(startDate)));
-  }
-  if (endDate) {
-    conditions.push(lte(claimsSchema.createdAt, new Date(endDate)));
-  }
-
   try {
+    const { orgId } = await auth();
+
+    if (!orgId) {
+      throw new Error('Unauthorized');
+    }
+
+    const isSuperAdmin = checkIsSuperAdmin(orgId);
+
+    if (!isSuperAdmin) {
+      throw new Error('Reports are S&A admin only');
+    }
+
+    const conditions = [];
+    if (startDate) {
+      conditions.push(gte(claimsSchema.createdAt, new Date(startDate)));
+    }
+    if (endDate) {
+      conditions.push(lte(claimsSchema.createdAt, new Date(endDate)));
+    }
+
     const result = await db
       .select({
         orgId: claimsSchema.orgId,
@@ -73,6 +73,7 @@ export async function getReportBySociety(
           : 0,
     }));
   } catch (error) {
+    // Already logged in original code catch block, but we moved try/catch wrapper higher
     console.error('[ReportsAction] getReportBySociety failed:', error);
     return [];
   }
@@ -86,30 +87,30 @@ export async function getReportByPeriod(
   year: number,
   orgIdFilter?: string,
 ): Promise<PeriodReport[]> {
-  const { orgId } = await auth();
-
-  if (!orgId) {
-    throw new Error('Unauthorized');
-  }
-
-  const isSuperAdmin = checkIsSuperAdmin(orgId);
-
-  // Non-admins can only see their own org's report
-  const targetOrgId = isSuperAdmin && orgIdFilter ? orgIdFilter : orgId;
-
-  const startOfYear = new Date(year, 0, 1);
-  const endOfYear = new Date(year, 11, 31, 23, 59, 59);
-
-  const conditions = [
-    gte(claimsSchema.createdAt, startOfYear),
-    lte(claimsSchema.createdAt, endOfYear),
-  ];
-
-  if (!isSuperAdmin || orgIdFilter) {
-    conditions.push(eq(claimsSchema.orgId, targetOrgId));
-  }
-
   try {
+    const { orgId } = await auth();
+
+    if (!orgId) {
+      throw new Error('Unauthorized');
+    }
+
+    const isSuperAdmin = checkIsSuperAdmin(orgId);
+
+    // Non-admins can only see their own org's report
+    const targetOrgId = isSuperAdmin && orgIdFilter ? orgIdFilter : orgId;
+
+    const startOfYear = new Date(year, 0, 1);
+    const endOfYear = new Date(year, 11, 31, 23, 59, 59);
+
+    const conditions = [
+      gte(claimsSchema.createdAt, startOfYear),
+      lte(claimsSchema.createdAt, endOfYear),
+    ];
+
+    if (!isSuperAdmin || orgIdFilter) {
+      conditions.push(eq(claimsSchema.orgId, targetOrgId));
+    }
+
     const result = await db
       .select({
         month: sql<string>`TO_CHAR(${claimsSchema.createdAt}, 'YYYY-MM')`,
@@ -139,26 +140,26 @@ export async function getReportByPeriod(
  * Shows claims with full, partial, or no recovery.
  */
 export async function getRecoveryReport(startDate?: string, endDate?: string) {
-  const { orgId } = await auth();
-
-  if (!orgId) {
-    throw new Error('Unauthorized');
-  }
-
-  const isSuperAdmin = checkIsSuperAdmin(orgId);
-
-  const conditions = [];
-  if (!isSuperAdmin) {
-    conditions.push(eq(claimsSchema.orgId, orgId));
-  }
-  if (startDate) {
-    conditions.push(gte(claimsSchema.createdAt, new Date(startDate)));
-  }
-  if (endDate) {
-    conditions.push(lte(claimsSchema.createdAt, new Date(endDate)));
-  }
-
   try {
+    const { orgId } = await auth();
+
+    if (!orgId) {
+      throw new Error('Unauthorized');
+    }
+
+    const isSuperAdmin = checkIsSuperAdmin(orgId);
+
+    const conditions = [];
+    if (!isSuperAdmin) {
+      conditions.push(eq(claimsSchema.orgId, orgId));
+    }
+    if (startDate) {
+      conditions.push(gte(claimsSchema.createdAt, new Date(startDate)));
+    }
+    if (endDate) {
+      conditions.push(lte(claimsSchema.createdAt, new Date(endDate)));
+    }
+
     const result = await db
       .select({
         status: claimsSchema.status,

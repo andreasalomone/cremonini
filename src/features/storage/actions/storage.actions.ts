@@ -2,6 +2,8 @@
 
 import { auth } from '@clerk/nextjs/server';
 
+import { logger } from '@/libs/Logger';
+
 import {
   deleteFile as deleteFromStorage,
   getSignedUrl as getStorageSignedUrl,

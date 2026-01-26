@@ -8,6 +8,7 @@ import { ECONOMICS } from '@/constants/Economics';
 import { checkIsSuperAdmin } from '@/libs/auth-utils';
 import { db } from '@/libs/DB';
 import { claimsSchema } from '@/models/Schema';
+import { logger } from '@/libs/Logger';
 
 export type DashboardStats = {
   totalClaims: number;
@@ -23,16 +24,39 @@ export type DashboardStats = {
  * Computes dashboard statistics based on user role (Admin vs Tenant).
  */
 export async function getDashboardStats(): Promise<DashboardStats> {
-  const { orgId, userId } = await auth();
-
-  if (!userId) {
-    throw new Error('Unauthorized');
-  }
-
-  // God Mode vs Tenant logic
-  const isSuperAdmin = checkIsSuperAdmin(orgId);
-
   try {
+    const { orgId, userId } = await auth();
+
+    if (!userId) {
+      logger.warn('[DashboardAction] Unauthorized access attempt');
+      return {
+        totalClaims: 0,
+        activeClaims: 0,
+        criticalClaims: 0,
+        totalValue: 0,
+        totalRecovered: 0,
+        recoveryRate: 0,
+        aggregateDeductibleResidual: ECONOMICS.ANNUAL_AGGREGATE_DEDUCTIBLE,
+      };
+    }
+
+    // God Mode vs Tenant logic
+    const isSuperAdmin = checkIsSuperAdmin(orgId);
+
+    // If regular user has no orgId, return empty stats instead of crashing
+    if (!isSuperAdmin && !orgId) {
+      logger.warn(`[DashboardAction] User ${userId} has no orgId`);
+      return {
+        totalClaims: 0,
+        activeClaims: 0,
+        criticalClaims: 0,
+        totalValue: 0,
+        totalRecovered: 0,
+        recoveryRate: 0,
+        aggregateDeductibleResidual: ECONOMICS.ANNUAL_AGGREGATE_DEDUCTIBLE,
+      };
+    }
+
     // Optimized SQL aggregates to avoid fetching all rows into memory
     const statsResult = await db
       .select({
