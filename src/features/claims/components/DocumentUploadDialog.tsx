@@ -27,9 +27,10 @@ import type { NewDocument } from '@/models/Schema';
 
 type DocumentUploadDialogProps = {
   claimId: string;
+  targetOrgId?: string; // Optional target organization for SuperAdmins
 };
 
-export function DocumentUploadDialog({ claimId }: DocumentUploadDialogProps) {
+export function DocumentUploadDialog({ claimId, targetOrgId }: DocumentUploadDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [documentType, setDocumentType] = useState<NewDocument['type']>('CMR_DDT');
@@ -86,6 +87,7 @@ export function DocumentUploadDialog({ claimId }: DocumentUploadDialogProps) {
 
           <FileUploader
             folder="documents"
+            targetOrgId={targetOrgId}
             onUploadComplete={handleUploadComplete}
             onUploadError={error => toast.error(error.message)}
           />

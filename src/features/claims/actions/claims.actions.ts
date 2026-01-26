@@ -11,6 +11,7 @@ import { Env } from '@/libs/Env';
 import { logger } from '@/libs/Logger';
 import { getSignedUrl } from '@/libs/supabase-storage';
 import { claimActivitiesSchema, claimsSchema } from '@/models/Schema';
+import { sanitizeCurrency } from '@/utils/Currency';
 
 import { CLAIM_STATUS_OPTIONS, type ClaimStatus } from '../constants';
 
@@ -39,18 +40,6 @@ export type CreateClaimInput = {
 const formatDate = (d: Date): string => d.toISOString().split('T')[0]!;
 const formatDateNullable = (d: Date | null): string | null =>
   d ? formatDate(d) : null;
-
-/**
- * Sanitizes Italian currency strings (e.g. "1.234,56") into
- * standard decimal strings (e.g. "1234.56") for the DB.
- */
-const sanitizeCurrency = (val?: string): string | null => {
-  if (!val) {
-    return null;
-  }
-  // Remove thousands separator (.) and replace decimal separator (,) with (.)
-  return val.replace(/\./g, '').replace(',', '.');
-};
 
 /**
  * Standardizes activity recording inside a transaction.
@@ -235,7 +224,12 @@ export async function createClaim(data: CreateClaimInput) {
     revalidatePath('/dashboard/claims');
     return { success: true, claimId: result.id };
   } catch (error) {
-    logger.error('[ClaimsAction] createClaim failed:', error);
+    logger.error('[ClaimsAction] createClaim failed:', {
+      error,
+      userId: (await auth()).userId,
+      orgId: (await auth()).orgId,
+      data: { ...data, documentPath: data.documentPath ? '[REDACTED]' : undefined },
+    });
     return { success: false, error: 'Failed to create claim' };
   }
 }
@@ -268,7 +262,7 @@ export async function updateClaimStatus(claimId: string, newStatus: ClaimStatus)
       dataToUpdate.claimFollowUpDeadline = formatDate(
         calculateExtendedDeadline(new Date(), 'CLAIM_SENT'),
       );
-        } else if (
+    } else if (
       newStatus === 'NEGOTIATION_EXTRAJUDICIAL'
       || newStatus === 'NEGOTIATION_ASSISTED'
     ) {
@@ -280,7 +274,7 @@ export async function updateClaimStatus(claimId: string, newStatus: ClaimStatus)
     // --- AUDIT TRAIL: CAPTURE CLOSED_AT ---
     if (newStatus === 'CLOSED') {
       dataToUpdate.closedAt = new Date();
-        } else {
+    } else {
       dataToUpdate.closedAt = null; // Reset if reopened
     }
 
@@ -437,9 +431,9 @@ export async function getOrganizationOptions() {
 
     const client = await clerkClient();
 
-    // Fetch all organizations from Clerk (limit 100 for now)
+    // Fetch all organizations from Clerk (limit 500 for scalability)
     const clerkOrgsResponse = await client.organizations.getOrganizationList({
-      limit: 100,
+      limit: 500,
     });
 
     return clerkOrgsResponse.data.map(org => ({

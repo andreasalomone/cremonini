@@ -21,6 +21,8 @@ type FileStatus = {
 type FileUploaderProps = {
   folder: 'claims' | 'documents' | 'procura';
   accept?: string;
+  targetOrgId?: string; // Optional target organization for SuperAdmins
+  onUploadStart?: () => void;
   onUploadComplete: (res: { path: string }[]) => void;
   onUploadError?: (error: Error) => void;
 };
@@ -32,6 +34,8 @@ type FileUploaderProps = {
 export function FileUploader({
   folder,
   accept = '.pdf,.png,.jpg,.jpeg,.gif,.webp,.eml',
+  targetOrgId,
+  onUploadStart,
   onUploadComplete,
   onUploadError,
 }: FileUploaderProps) {
@@ -61,7 +65,7 @@ export function FileUploader({
         const formData = new FormData();
         formData.append('file', fileItem.file);
 
-        const result = await uploadFile(formData, folder);
+        const result = await uploadFile(formData, folder, targetOrgId);
 
         setFiles(prev =>
           prev.map(f =>
@@ -70,6 +74,7 @@ export function FileUploader({
               : f,
           ),
         );
+        return result.path;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Upload fallito';
         setFiles(prev =>
@@ -78,14 +83,15 @@ export function FileUploader({
           ),
         );
         onUploadError?.(error instanceof Error ? error : new Error(errorMessage));
+        return null;
       }
     },
-    [folder, onUploadError],
+    [folder, targetOrgId, onUploadError],
   );
 
   // Handle new files
   const handleFiles = useCallback(
-    (newFiles: File[]) => {
+    async (newFiles: File[]) => {
       if (!newFiles.length) {
         return;
       }
@@ -98,39 +104,26 @@ export function FileUploader({
       }));
 
       setFiles(prev => [...prev, ...fileItems]);
+      onUploadStart?.();
 
-      // Start uploads
-      fileItems.forEach(item => uploadSingleFile(item));
+      // Start uploads and wait for all to finish
+      const uploadPromises = fileItems.map(item => uploadSingleFile(item));
+      const results = await Promise.all(uploadPromises);
 
-      // Check completion and notify parent
-      const checkCompletion = setInterval(() => {
-        setFiles((current) => {
-          const statusMap = new Map(current.map(f => [f.id, f]));
-          const relevantFiles = fileItems.map(item => statusMap.get(item.id)).filter(Boolean);
-          const allDone = relevantFiles.every(
-            f => f!.status === 'complete' || f!.status === 'error',
-          );
+      const completedPaths = results
+        .filter((path): path is string => path !== null)
+        .map(path => ({ path }));
 
-          if (allDone) {
-            clearInterval(checkCompletion);
-            const completedPaths = relevantFiles
-              .filter(f => f!.status === 'complete' && f!.path)
-              .map(f => ({ path: f!.path! }));
+      if (completedPaths.length > 0) {
+        onUploadComplete(completedPaths);
+      }
 
-            if (completedPaths.length > 0) {
-              onUploadComplete(completedPaths);
-            }
-
-            // Clear completed files after delay
-            setTimeout(() => {
-              setFiles(prev => prev.filter(f => f.status !== 'complete'));
-            }, 1500);
-          }
-          return current;
-        });
-      }, 500);
+      // Clear completed files after delay
+      setTimeout(() => {
+        setFiles(prev => prev.filter(f => f.status !== 'complete'));
+      }, 1500);
     },
-    [uploadSingleFile, onUploadComplete],
+    [uploadSingleFile, onUploadComplete, onUploadStart],
   );
 
   // Retry failed upload

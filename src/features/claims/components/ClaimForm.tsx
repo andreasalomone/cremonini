@@ -85,6 +85,15 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
     }
   }, [isSuperAdmin]);
 
+  const watchTargetOrgId = form.watch('targetOrgId');
+
+  // Audit Fix: Reset documentPath if organization changes to prevent path mismatch
+  useEffect(() => {
+    if (isSuperAdmin) {
+      form.setValue('documentPath', '');
+    }
+  }, [watchTargetOrgId, isSuperAdmin, form]);
+
   const watchType = form.watch('type');
   const watchState = form.watch('state');
   const watchDate = form.watch('eventDate');
@@ -93,7 +102,8 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
   const watchOutboundDate = form.watch('stockOutboundDate');
   const watchInboundReserve = form.watch('hasStockInboundReserve');
   const watchHasThirdParty = form.watch('hasThirdPartyResponsible');
-  const watchTargetOrgId = form.watch('targetOrgId');
+
+  const [isUploading, setIsUploading] = useState(false);
 
   const isFormValid = !isSuperAdmin || (isSuperAdmin && !!watchTargetOrgId);
 
@@ -110,12 +120,21 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
     : null;
 
   async function onSubmit(data: CreateClaimFormValues) {
+    if (isUploading) {
+      toast.error('Attendi il completamento del caricamento dei file');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await createClaim(data);
-      toast.success('Sinistro creato con successo');
-      if (onSuccess) {
-        onSuccess();
+      const result = await createClaim(data);
+      if (result.success) {
+        toast.success('Sinistro creato con successo');
+        if (onSuccess) {
+          onSuccess();
+        }
+      } else {
+        toast.error(result.error || 'Errore durante la creazione del sinistro');
       }
     } catch (error) {
       console.error('[ClaimForm] Failed:', error);
@@ -567,14 +586,18 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
               <FormControl>
                 <FileUploader
                   folder="claims"
+                  targetOrgId={watchTargetOrgId}
+                  onUploadStart={() => setIsUploading(true)}
                   onUploadComplete={(res) => {
                     const path = res?.[0]?.path;
                     if (path) {
                       field.onChange(path);
                     }
+                    setIsUploading(false);
                   }}
                   onUploadError={(error) => {
                     console.error(error);
+                    setIsUploading(false);
                   }}
                 />
               </FormControl>
