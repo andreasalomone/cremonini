@@ -4,9 +4,10 @@ import { BadgeInfo, CheckCircle2, FileUp, History, Info, TrendingUp } from 'luci
 import type { ReactNode } from 'react';
 
 import type { ClaimActivity } from '@/models/Schema';
+import type { Serialized } from '@/utils/serialization';
 
 type ClaimTimelineProps = {
-  activities: ClaimActivity[];
+  activities: Serialized<ClaimActivity>[];
 };
 
 const activityIcons: Record<string, ReactNode> = {

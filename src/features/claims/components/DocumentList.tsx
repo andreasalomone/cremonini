@@ -5,9 +5,10 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import type { Document } from '@/models/Schema';
+import type { Serialized } from '@/utils/serialization';
 
 type DocumentListProps = {
-  documents: Document[];
+  documents: Serialized<Document>[];
   onDownload: (path: string) => Promise<string | null>;
 };
 

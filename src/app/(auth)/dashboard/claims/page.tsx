@@ -4,6 +4,7 @@ import { getClaims } from '@/features/claims/actions/claims.actions';
 import { ClaimsTable } from '@/features/claims/components/ClaimsTable';
 import { NewClaimDialog } from '@/features/claims/components/NewClaimDialog';
 import { checkIsSuperAdmin } from '@/libs/auth-utils';
+import { serialize } from '@/utils/serialization';
 
 // Prevent static pre-rendering - this page requires runtime database access
 export const dynamic = 'force-dynamic';
@@ -11,7 +12,8 @@ export const dynamic = 'force-dynamic';
 export default async function ClaimsPage() {
   const { orgId } = await auth();
   const isSuperAdmin = checkIsSuperAdmin(orgId);
-  const claims = await getClaims();
+  const rawClaims = await getClaims();
+  const claims = serialize(rawClaims);
 
   return (
     <div className="flex flex-col gap-8">

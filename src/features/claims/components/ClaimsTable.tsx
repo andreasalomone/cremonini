@@ -16,13 +16,14 @@ import { PoaStatusBadge } from '@/features/procura/components/PoaStatusBadge';
 import { GLOBAL_CREMONINI_ID } from '@/features/procura/constants';
 import { calculateDeadlines } from '@/libs/deadline-logic';
 import type { Claim } from '@/models/Schema';
+import type { Serialized } from '@/utils/serialization';
 
 import { CLAIM_TYPE_OPTIONS } from '../constants';
 import { ClaimStatusSelect } from './ClaimStatusSelect';
 import { DeadlineBadge } from './DeadlineBadge';
 
 type ClaimsTableProps = {
-  claims: Claim[];
+  claims: Serialized<Claim>[];
   poaStatusMap?: Map<string, PoaStatus>;
   showPoaColumn?: boolean;
   readOnly?: boolean;
@@ -68,7 +69,7 @@ export const ClaimsTable = ({
                   </TableRow>
                 )
               : (
-                  claims.map((claim: Claim) => {
+                  claims.map((claim) => {
                     const typeLabel = CLAIM_TYPE_OPTIONS.find(opt => opt.value === claim.type)?.label || claim.type;
                     const stateLabel = claim.state === 'INTERNATIONAL' ? 'Int.' : 'Naz.';
 

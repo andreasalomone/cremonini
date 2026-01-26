@@ -13,6 +13,7 @@ import { DocumentUploadDialog } from '@/features/claims/components/DocumentUploa
 import { EconomicFields } from '@/features/claims/components/EconomicFields';
 import { CLAIM_STATE_OPTIONS, CLAIM_TYPE_OPTIONS } from '@/features/claims/constants';
 import { checkIsSuperAdmin } from '@/libs/auth-utils';
+import { serialize } from '@/utils/serialization';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,11 +28,13 @@ export default async function ClaimDetailPage({ params }: PageProps) {
   const isSuperAdmin = checkIsSuperAdmin(orgId);
   const readOnly = !isSuperAdmin;
 
-  const claim = await getClaimById(params.id);
+  const rawClaim = await getClaimById(params.id);
 
-  if (!claim) {
+  if (!rawClaim) {
     notFound();
   }
+
+  const claim = serialize(rawClaim);
 
   const typeLabel = CLAIM_TYPE_OPTIONS.find(opt => opt.value === claim.type)?.label || claim.type;
   const stateLabel = CLAIM_STATE_OPTIONS.find(opt => opt.value === claim.state)?.label || claim.state;
