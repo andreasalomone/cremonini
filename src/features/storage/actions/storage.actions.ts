@@ -20,8 +20,9 @@ export async function uploadFile(formData: FormData, folder: StorageFolder, targ
     throw new Error('Non autorizzato');
   }
 
-  // Use targetOrgId if provided (SuperAdmin), otherwise use user's orgId
-  const finalOrgId = targetOrgId || orgId;
+  // Security: Only SuperAdmins can upload to other organizations
+  const isSuperAdmin = checkIsSuperAdmin(orgId);
+  const finalOrgId = (isSuperAdmin && targetOrgId) ? targetOrgId : orgId;
 
   const path = await uploadToStorage(formData, folder, finalOrgId);
   return { path };
@@ -40,7 +41,8 @@ export async function getDocumentUrl(path: string) {
   }
 
   // Security: verify path belongs to org unless SuperAdmin
-  if (!isSuperAdmin && !path.startsWith(orgId || '')) {
+  // Must use slash to prevent prefix collisions (e.g. org "1" accessing org "10")
+  if (!isSuperAdmin && !path.startsWith(`${orgId}/`)) {
     throw new Error('Accesso negato');
   }
 

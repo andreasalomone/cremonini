@@ -43,7 +43,7 @@ const formatDateNullable = (d: Date | null): string | null =>
  * Standardizes activity recording inside a transaction.
  */
 async function recordActivity(
-  tx: any,
+  tx: typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0],
   claimId: string,
   userId: string,
   type: 'CREATED' | 'STATUS_CHANGE' | 'DOC_UPLOAD' | 'DOC_DELETE' | 'INFO_UPDATE' | 'ECONOMICS_UPDATE',
