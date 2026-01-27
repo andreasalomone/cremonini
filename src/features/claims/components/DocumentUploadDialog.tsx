@@ -88,6 +88,7 @@ export function DocumentUploadDialog({ claimId, targetOrgId }: DocumentUploadDia
           <FileUploader
             folder="documents"
             targetOrgId={targetOrgId}
+            maxFiles={25}
             onUploadComplete={handleUploadComplete}
             onUploadError={error => toast.error(error.message)}
           />
