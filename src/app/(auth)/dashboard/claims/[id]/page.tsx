@@ -18,17 +18,18 @@ import { serialize } from '@/utils/serialization';
 export const dynamic = 'force-dynamic';
 
 type PageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
 export default async function ClaimDetailPage({ params }: PageProps) {
+  const { id } = await params;
   const { orgId } = await auth();
   const isSuperAdmin = checkIsSuperAdmin(orgId);
   const readOnly = !isSuperAdmin;
 
-  const rawClaim = await getClaimById(params.id);
+  const rawClaim = await getClaimById(id);
 
   if (!rawClaim) {
     notFound();
