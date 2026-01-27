@@ -58,8 +58,11 @@ export async function deleteDocument(path: string) {
     throw new Error('Non autorizzato');
   }
 
-  // Security: verify path belongs to org
-  if (!path.startsWith(orgId)) {
+  const isSuperAdmin = checkIsSuperAdmin(orgId);
+  const pathOrgId = path.split('/')[0];
+
+  // Security: verify path belongs to org, unless SuperAdmin
+  if (!isSuperAdmin && pathOrgId !== orgId) {
     throw new Error('Accesso negato');
   }
 
