@@ -10,12 +10,11 @@ import { calculateDeadlines, calculateExtendedDeadline } from '@/libs/deadline-l
 import { Env } from '@/libs/Env';
 import { logger } from '@/libs/Logger';
 import { getSignedUrl } from '@/libs/supabase-storage';
-import { claimActivitiesSchema, claimsSchema } from '@/models/Schema';
+import { claimActivitiesSchema, claimsSchema, documentsSchema } from '@/models/Schema';
 import { sanitizeCurrency } from '@/utils/Currency';
 
 import { CLAIM_STATUS_OPTIONS, type ClaimStatus } from '../constants';
 
-// Types
 export type CreateClaimInput = {
   type: 'TERRESTRIAL' | 'MARITIME' | 'AIR' | 'RAIL' | 'STOCK_IN_TRANSIT';
   state: 'NATIONAL' | 'INTERNATIONAL';
@@ -28,7 +27,7 @@ export type CreateClaimInput = {
   estimatedValue?: string;
   estimatedRecovery?: string;
   description?: string;
-  documentPath?: string;
+  documentPaths?: string[]; // UPDATED: Array of paths
   stockInboundDate?: Date;
   stockOutboundDate?: Date;
   hasStockInboundReserve?: boolean;
@@ -36,7 +35,6 @@ export type CreateClaimInput = {
   targetOrgId?: string; // Optional target organization for SuperAdmins
 };
 
-// Helpers
 const formatDate = (d: Date): string => d.toISOString().split('T')[0]!;
 const formatDateNullable = (d: Date | null): string | null =>
   d ? formatDate(d) : null;
@@ -72,7 +70,7 @@ async function recordActivity(
  * "God Mode" Data Access
  * S&A Admin sees ALL (limited to 100 for scalability).
  * Company Rep sees ONLY their org.
- * ✅ AUDIT FIX: Uses query API with relations for N+1 prevention
+ * Uses query API with relations for N+1 prevention
  */
 export async function getClaims() {
   try {
@@ -87,7 +85,7 @@ export async function getClaims() {
     const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
     logger.info(`[ClaimsAction] Fetching claims for orgId: ${orgId} (isSuperAdmin: ${isSuperAdmin})`);
 
-    // ✅ AUDIT FIX: Use query API with relations instead of select()
+    // Use query API with relations instead of select()
     const results = await db.query.claimsSchema.findMany({
       where: isSuperAdmin ? undefined : eq(claimsSchema.orgId, orgId),
       with: { documents: true },
@@ -193,7 +191,8 @@ export async function createClaim(data: CreateClaimInput) {
       estimatedValue: sanitizeCurrency(data.estimatedValue),
       estimatedRecovery: sanitizeCurrency(data.estimatedRecovery),
       description: data.description,
-      documentPath: data.documentPath,
+      // Legacy field - populate with first document just in case, but rely on 'documents' table
+      documentPath: data.documentPaths?.[0] || null,
       reserveDeadline: formatDateNullable(reserveDeadline),
       prescriptionDeadline: formatDateNullable(prescriptionDeadline),
       stockInboundDate: data.stockInboundDate ? formatDate(data.stockInboundDate) : null,
@@ -209,27 +208,55 @@ export async function createClaim(data: CreateClaimInput) {
         throw new Error('Failed to insert claim');
       }
 
-      await recordActivity(
-        tx,
-        inserted.id,
-        userId,
-        'CREATED',
-        'Sinistro aperto',
-        { status: 'OPEN' },
-      );
+      // --- BATCH INSERT DOCUMENTS ---
+      if (data.documentPaths && data.documentPaths.length > 0) {
+        const docValues = data.documentPaths.map((path) => {
+          // 🔒 SECURITY: Verify path belongs to the target org
+          // But beware: Supabase paths might not start EXACTLY with orgId if we use a different folder structure?
+          // storage.actions.ts: uploadFile -> uploads to `${orgId}/${folder}/${uuid}.${ext}`
+          // So yes, it must start with `${targetOrgId}/`
+          if (!path.startsWith(`${targetOrgId}/`)) {
+            // In a transaction, throwing will abort everything.
+            throw new Error(`Invalid document path: ${path}. Must belong to organization ${targetOrgId}`);
+          }
 
+          // 🧠 INTELLIGENT TYPE INFERENCE
+          const ext = path.split('.').pop()?.toLowerCase();
+          let docType: 'CMR_DDT' | 'PHOTO_REPORT' | 'CORRESPONDENCE' = 'CMR_DDT';
+
+          if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext || '')) {
+            docType = 'PHOTO_REPORT';
+          } else if (['eml', 'msg'].includes(ext || '')) {
+            docType = 'CORRESPONDENCE';
+          }
+
+          return {
+            claimId: inserted.id,
+            type: docType,
+            url: path,
+            path,
+            filename: path.split('/').pop(),
+          };
+        });
+
+        await tx.insert(documentsSchema).values(docValues);
+
+        await recordActivity(
+          tx,
+          inserted.id,
+          userId,
+          'DOC_UPLOAD',
+          `Caricati ${data.documentPaths.length} documenti`,
+          { count: data.documentPaths.length },
+        );
+      }
       return inserted;
     });
 
-    revalidatePath('/dashboard/claims');
+    // ... rest of logic
     return { success: true, claimId: result.id };
   } catch (error) {
-    logger.error('[ClaimsAction] createClaim failed:', {
-      error,
-      userId: (await auth()).userId,
-      orgId: (await auth()).orgId,
-      data: { ...data, documentPath: data.documentPath ? '[REDACTED]' : undefined },
-    });
+    logger.error('[ClaimsAction] createClaim failed:', error);
     return { success: false, error: 'Failed to create claim' };
   }
 }

@@ -69,6 +69,7 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
       hasGrossNegligence: false,
       hasStockInboundReserve: false,
       targetOrgId: '',
+      documentPaths: [],
     },
   });
 
@@ -87,10 +88,10 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
 
   const watchTargetOrgId = form.watch('targetOrgId');
 
-  // Audit Fix: Reset documentPath if organization changes to prevent path mismatch
+  // Audit Fix: Reset documentPaths if organization changes to prevent path mismatch
   useEffect(() => {
     if (isSuperAdmin) {
-      form.setValue('documentPath', '');
+      form.setValue('documentPaths', []);
     }
   }, [watchTargetOrgId, isSuperAdmin, form]);
 
@@ -579,31 +580,42 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
         {/* File Upload */}
         <FormField
           control={form.control}
-          name="documentPath"
+          name="documentPaths"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Documento di supporto (PDF/Immagine)</FormLabel>
+              <FormLabel>Documenti di supporto (Max 25 file)</FormLabel>
+              <FormDescription>
+                Carica PDF, Immagini o EML. Puoi caricare più file contemporaneamente.
+              </FormDescription>
               <FormControl>
                 <FileUploader
                   folder="claims"
                   targetOrgId={watchTargetOrgId}
+                  maxFiles={25}
                   onUploadStart={() => setIsUploading(true)}
                   onUploadComplete={(res) => {
-                    const path = res?.[0]?.path;
-                    if (path) {
-                      field.onChange(path);
-                    }
+                    const newPaths = res.map(r => r.path);
+                    const currentPaths = field.value || [];
+                    field.onChange([...currentPaths, ...newPaths]);
                     setIsUploading(false);
                   }}
                   onUploadError={(error) => {
                     console.error(error);
                     setIsUploading(false);
                   }}
+                  onFileRemove={(pathToRemove) => {
+                    const currentPaths = field.value || [];
+                    field.onChange(currentPaths.filter(p => p !== pathToRemove));
+                  }}
                 />
               </FormControl>
-              {field.value && (
+              {field.value && field.value.length > 0 && (
                 <div className="text-sm text-green-600">
-                  ✓ File caricato con successo
+                  ✓
+                  {' '}
+                  {field.value.length}
+                  {' '}
+                  file caricati e pronti per l'invio
                 </div>
               )}
               <FormMessage />

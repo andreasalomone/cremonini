@@ -1,12 +1,18 @@
 'use client';
 
-import { CheckCircle2, FileText, RotateCcw, UploadCloud, XCircle } from 'lucide-react';
+import { CheckCircle2, FileText, RotateCcw, Trash2, UploadCloud, XCircle } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 import { Input } from '@/components/ui/input';
-import { uploadFile } from '@/features/storage/actions/storage.actions';
+import {
+  deleteDocument as deleteDocumentAction,
+  uploadFile as uploadFileAction,
+} from '@/features/storage/actions/storage.actions';
+import { useIsMounted } from '@/hooks/useIsMounted';
 import { validateFile } from '@/libs/storage-constants';
+import type { StorageFolder } from '@/libs/supabase-storage';
 import { cn } from '@/utils/Helpers';
 
 type FileStatus = {
@@ -19,12 +25,17 @@ type FileStatus = {
 };
 
 type FileUploaderProps = {
-  folder: 'claims' | 'documents' | 'procura';
+  folder: StorageFolder;
   accept?: string;
   targetOrgId?: string; // Optional target organization for SuperAdmins
+  maxFiles?: number;
   onUploadStart?: () => void;
   onUploadComplete: (res: { path: string }[]) => void;
   onUploadError?: (error: Error) => void;
+  onFileRemove?: (path: string) => void; // Callback when user removes a completed file
+  // Dependency Injection for testing
+  uploadAction?: typeof uploadFileAction;
+  deleteAction?: typeof deleteDocumentAction;
 };
 
 /**
@@ -35,17 +46,25 @@ export function FileUploader({
   folder,
   accept = '.pdf,.png,.jpg,.jpeg,.gif,.webp,.eml',
   targetOrgId,
+  maxFiles = 25,
   onUploadStart,
   onUploadComplete,
   onUploadError,
+  onFileRemove,
+  uploadAction = uploadFileAction,
+  deleteAction = deleteDocumentAction,
 }: FileUploaderProps) {
+  const isMounted = useIsMounted();
   const [dragActive, setDragActive] = useState(false);
   const [files, setFiles] = useState<FileStatus[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Upload a single file
   const uploadSingleFile = useCallback(
     async (fileItem: FileStatus) => {
+      if (!isMounted.current) {
+        return null;
+      }
+
       setFiles(prev =>
         prev.map(f => (f.id === fileItem.id ? { ...f, status: 'uploading' as const, progress: 30 } : f)),
       );
@@ -57,46 +76,67 @@ export function FileUploader({
           throw new Error(validation.error);
         }
 
-        setFiles(prev =>
-          prev.map(f => (f.id === fileItem.id ? { ...f, progress: 50 } : f)),
-        );
+        if (isMounted.current) {
+          setFiles(prev =>
+            prev.map(f => (f.id === fileItem.id ? { ...f, progress: 50 } : f)),
+          );
+        }
 
         // Create FormData and upload via server action
         const formData = new FormData();
         formData.append('file', fileItem.file);
 
-        const result = await uploadFile(formData, folder, targetOrgId);
+        // Call the injected action
+        const result = await uploadAction(formData, folder, targetOrgId);
 
-        setFiles(prev =>
-          prev.map(f =>
-            f.id === fileItem.id
-              ? { ...f, status: 'complete' as const, progress: 100, path: result.path }
-              : f,
-          ),
-        );
+        if (isMounted.current) {
+          setFiles(prev =>
+            prev.map(f =>
+              f.id === fileItem.id
+                ? { ...f, status: 'complete' as const, progress: 100, path: result.path }
+                : f,
+            ),
+          );
+        }
         return result.path;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Upload fallito';
-        setFiles(prev =>
-          prev.map(f =>
-            f.id === fileItem.id ? { ...f, status: 'error' as const, error: errorMessage } : f,
-          ),
-        );
+        if (isMounted.current) {
+          setFiles(prev =>
+            prev.map(f =>
+              f.id === fileItem.id ? { ...f, status: 'error' as const, error: errorMessage } : f,
+            ),
+          );
+        }
         onUploadError?.(error instanceof Error ? error : new Error(errorMessage));
         return null;
       }
     },
-    [folder, targetOrgId, onUploadError],
+    [folder, targetOrgId, onUploadError, uploadAction, isMounted],
   );
 
-  // Handle new files
   const handleFiles = useCallback(
     async (newFiles: File[]) => {
-      if (!newFiles.length) {
+      if (!newFiles.length || !isMounted.current) {
         return;
       }
 
-      const fileItems: FileStatus[] = newFiles.map(f => ({
+      // Check max files limit
+      const currentActiveFiles = files.length;
+      const availableSlots = maxFiles - currentActiveFiles;
+
+      if (availableSlots <= 0) {
+        toast.error(`Hai raggiunto il limite massimo di ${maxFiles} file.`);
+        return;
+      }
+
+      let filesToProcess = newFiles;
+      if (newFiles.length > availableSlots) {
+        toast.warning(`Sono stati caricati solo iprimi ${availableSlots} file per rispettare il limite.`);
+        filesToProcess = newFiles.slice(0, availableSlots);
+      }
+
+      const fileItems: FileStatus[] = filesToProcess.map(f => ({
         id: crypto.randomUUID(),
         file: f,
         progress: 0,
@@ -114,21 +154,40 @@ export function FileUploader({
         .filter((path): path is string => path !== null)
         .map(path => ({ path }));
 
-      if (completedPaths.length > 0) {
+      if (completedPaths.length > 0 && isMounted.current) {
         onUploadComplete(completedPaths);
       }
 
-      // Clear completed files after delay
-      setTimeout(() => {
-        setFiles(prev => prev.filter(f => f.status !== 'complete'));
-      }, 1500);
+      // We do NOT automatically clear completed files anymore, to allow user to see what they uploaded
+      // Only clear them if success is meant to be ephemeral (can be added as prop later if needed)
     },
-    [uploadSingleFile, onUploadComplete, onUploadStart],
+    [uploadSingleFile, onUploadComplete, onUploadStart, maxFiles, files.length, isMounted],
   );
 
-  // Retry failed upload
+  // Remove a file (and delete from storage if complete)
+  const handleRemoveItem = useCallback(async (item: FileStatus) => {
+    if (item.status === 'complete' && item.path) {
+      try {
+        await deleteAction(item.path);
+        onFileRemove?.(item.path);
+      } catch (error) {
+        console.error('Failed to delete file from storage', error);
+        toast.error('Errore durante la rimozione del file');
+        // We still remove from UI even if strage delete fails?
+        // Ideally yes, to not block the user.
+      }
+    }
+
+    if (isMounted.current) {
+      setFiles(prev => prev.filter(f => f.id !== item.id));
+    }
+  }, [deleteAction, onFileRemove, isMounted]);
+
   const handleRetry = useCallback(
     (fileItem: FileStatus) => {
+      if (!isMounted.current) {
+        return;
+      }
       setFiles(prev =>
         prev.map(f =>
           f.id === fileItem.id ? { ...f, status: 'queued' as const, progress: 0, error: undefined } : f,
@@ -136,26 +195,29 @@ export function FileUploader({
       );
       uploadSingleFile(fileItem);
     },
-    [uploadSingleFile],
+    [uploadSingleFile, isMounted],
   );
 
-  // Drag handlers
   const handleDrag = useCallback((e: React.DragEvent, active: boolean) => {
     e.preventDefault();
     e.stopPropagation();
-    setDragActive(active);
-  }, []);
+    if (isMounted.current) {
+      setDragActive(active);
+    }
+  }, [isMounted]);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      setDragActive(false);
+      if (isMounted.current) {
+        setDragActive(false);
+      }
       if (e.dataTransfer.files?.length) {
         handleFiles(Array.from(e.dataTransfer.files));
       }
     },
-    [handleFiles],
+    [handleFiles, isMounted],
   );
 
   const handleInputChange = useCallback(
@@ -223,7 +285,11 @@ export function FileUploader({
               Carica documenti
             </p>
             <p className="text-sm text-muted-foreground">
-              PDF, PNG, JPG, EML (max 50MB)
+              PDF, PNG, JPG, EML (max
+              {' '}
+              {maxFiles}
+              {' '}
+              file)
             </p>
           </div>
         </div>
@@ -287,21 +353,37 @@ export function FileUploader({
                     <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                   )}
                   {item.status === 'error' && (
-                    <>
-                      <XCircle className="size-5 text-destructive" />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRetry(item);
-                        }}
-                        className="rounded-full p-1 transition-colors hover:bg-muted"
-                        title="Riprova"
-                      >
-                        <RotateCcw className="size-4 text-muted-foreground hover:text-foreground" />
-                      </button>
-                    </>
+                    <XCircle className="size-5 text-destructive" />
                   )}
+
+                  {/* Actions: Retry or Delete */}
+                  {item.status === 'error'
+                    ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRetry(item);
+                          }}
+                          className="rounded-full p-1 transition-colors hover:bg-muted"
+                          title="Riprova"
+                        >
+                          <RotateCcw className="size-4 text-muted-foreground hover:text-foreground" />
+                        </button>
+                      )
+                    : (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveItem(item);
+                          }}
+                          className="rounded-full p-1 transition-colors hover:bg-muted hover:text-destructive"
+                          title="Rimuovi"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      )}
                 </div>
               </div>
             </motion.div>

@@ -23,7 +23,7 @@ export const CreateClaimSchema = z.object({
   recoveredAmount: z.string().optional(),
   estimatedRecovery: z.string().optional(),
   description: z.string().optional(),
-  documentPath: z.string().optional(),
+  documentPaths: z.array(z.string()).optional(),
 
   // SIT Fields
   stockInboundDate: z.date().optional(),
