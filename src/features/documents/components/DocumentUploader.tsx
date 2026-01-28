@@ -1,10 +1,10 @@
 'use client';
 
 import { Loader2 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
-import { FileUploader } from '@/components/FileUploader';
 import {
   Select,
   SelectContent,
@@ -17,6 +17,10 @@ import {
   DOCUMENT_TYPE_OPTIONS,
 } from '@/features/documents/actions/documents.actions';
 import type { NewDocument } from '@/models/Schema';
+
+const FileUploader = dynamic(() => import('@/components/FileUploader').then(mod => mod.FileUploader), {
+  ssr: false,
+});
 
 type DocumentUploaderProps = {
   claimId: string;
