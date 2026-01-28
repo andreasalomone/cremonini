@@ -5,7 +5,7 @@ import { notFound, redirect } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getClaimById, getDocumentUrl, updateClaimEconomics } from '@/features/claims/actions/claims.actions';
+import { getClaimById, updateClaimEconomics } from '@/features/claims/actions/claims.actions';
 import { ClaimStatusSelect } from '@/features/claims/components/ClaimStatusSelect';
 import { ClaimTimeline } from '@/features/claims/components/ClaimTimeline';
 import { DocumentList } from '@/features/claims/components/DocumentList';
@@ -13,7 +13,7 @@ import { DocumentUploadDialog } from '@/features/claims/components/DocumentUploa
 import { EconomicFields } from '@/features/claims/components/EconomicFields';
 import { type ClaimViewModel, toClaimViewModel } from '@/features/claims/utils/claim-view-model';
 import { checkIsSuperAdmin } from '@/libs/auth-utils';
-import type { Claim } from '@/models/Schema';
+import type { Claim, ClaimActivity } from '@/models/Schema';
 import { serialize, type Serialized } from '@/utils/serialization';
 
 export const dynamic = 'force-dynamic';
@@ -176,14 +176,13 @@ function DocumentsCard({ claim, readOnly, superAdminTargetOrgId }: { claim: Clai
       <CardContent>
         <DocumentList
           documents={claim.documents}
-          onDownload={getDocumentUrl}
         />
       </CardContent>
     </Card>
   );
 }
 
-function TimelineCard({ activities }: { activities: any[] }) {
+function TimelineCard({ activities }: { activities: Serialized<ClaimActivity>[] }) {
   return (
     <Card className="h-full">
       <CardHeader className="border-b bg-muted/30 pb-4">

@@ -77,6 +77,17 @@ export const toClaimViewModel = (claim: Serialized<Claim>): ClaimViewModel => {
   const stateOption = CLAIM_STATE_OPTIONS.find(opt => opt.value === claim.state);
   const stateLabel = stateOption ? stateOption.label : claim.state;
 
+  // Helper to safely handle arrays from relations with logging for unexpected types
+  const safeArray = <T>(data: any, fieldName: string): T[] => {
+    if (Array.isArray(data)) {
+      return data as T[];
+    }
+    if (data !== null && data !== undefined) {
+      console.warn(`[ViewModel] Field "${fieldName}" on claim ${claim.id} expected array, got:`, typeof data);
+    }
+    return [];
+  };
+
   return {
     id: claim.id,
     orgId: claim.orgId,
@@ -91,8 +102,9 @@ export const toClaimViewModel = (claim: Serialized<Claim>): ClaimViewModel => {
     carrierName: claim.carrierName || '-',
     thirdPartyName: claim.hasThirdPartyResponsible ? (claim.thirdPartyName || '-') : null,
     description: claim.description || 'Nessuna descrizione fornita.',
-    documents: (claim.documents as Serialized<ClaimDocument>[]) ?? [],
-    activities: (claim.activities as Serialized<ClaimActivity>[]) ?? [],
+    // DEFENSIVE: strictly enforce array type to prevent ".map is not a function"
+    documents: safeArray<Serialized<ClaimDocument>>(claim.documents, 'documents'),
+    activities: safeArray<Serialized<ClaimActivity>>(claim.activities, 'activities'),
     economics: {
       estimatedValue: formatCurrencyString(claim.estimatedValue),
       verifiedDamage: formatCurrencyString(claim.verifiedDamage),

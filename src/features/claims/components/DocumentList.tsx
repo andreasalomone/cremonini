@@ -4,18 +4,18 @@ import { Download, Eye, FileIcon, FileText, ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+import { getDocumentUrl } from '@/features/claims/actions/claims.actions';
 import type { Document } from '@/models/Schema';
 import type { Serialized } from '@/utils/serialization';
 
 type DocumentListProps = {
   documents: Serialized<Document>[];
-  onDownload: (path: string) => Promise<string | null>;
 };
 
-export const DocumentList = ({ documents, onDownload }: DocumentListProps) => {
+export const DocumentList = ({ documents }: DocumentListProps) => {
   const handleDownload = async (path: string) => {
     try {
-      const url = await onDownload(path);
+      const url = await getDocumentUrl(path);
       if (url) {
         window.open(url, '_blank', 'noopener,noreferrer');
       } else {
@@ -26,7 +26,7 @@ export const DocumentList = ({ documents, onDownload }: DocumentListProps) => {
     }
   };
 
-  if (!documents || documents.length === 0) {
+  if (!Array.isArray(documents) || documents.length === 0) {
     return (
       <div className="flex h-32 flex-col items-center justify-center rounded-lg border border-dashed text-muted-foreground">
         <p className="text-sm">Nessun documento caricato</p>

@@ -3,11 +3,6 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { FileUploader } from './FileUploader';
 
-// Mock dependencies
-vi.mock('@/hooks/useIsMounted', () => ({
-  useIsMounted: () => ({ current: true }),
-}));
-
 vi.mock('sonner', () => ({
   toast: {
     error: vi.fn(),
@@ -15,15 +10,11 @@ vi.mock('sonner', () => ({
   },
 }));
 
-// Mock server actions (module level to avoid import side-effects)
 vi.mock('@/features/storage/actions/storage.actions', () => ({
   uploadFile: vi.fn(),
   deleteDocument: vi.fn(),
 }));
 
-// Mock server actions (injectable)
-// We keep these for explicit prop passing validation if needed,
-// but the module mock handles the default props.
 const mockUploadAction = vi.fn();
 const mockDeleteAction = vi.fn();
 
@@ -45,40 +36,13 @@ describe('FileUploader', () => {
     expect(screen.getByText(/Carica documenti/i)).toBeInTheDocument();
   });
 
-  it('handles file upload correctly', async () => {
-    mockUploadAction.mockResolvedValue({ path: 'claims/test-file.pdf' });
+  it('handles multiple file uploads correctly with individual completions', async () => {
+    mockUploadAction.mockResolvedValue({ path: 'claims/test.pdf' });
     const onComplete = vi.fn();
 
     render(
       <FileUploader
         folder="claims"
-        onUploadComplete={onComplete}
-        uploadAction={mockUploadAction}
-        deleteAction={mockDeleteAction}
-      />,
-    );
-
-    const file = new File(['test content'], 'test-file.pdf', { type: 'application/pdf' });
-    const input = screen.getByTestId('file-upload-input');
-
-    fireEvent.change(input, { target: { files: [file] } });
-
-    await waitFor(() => {
-      expect(mockUploadAction).toHaveBeenCalled();
-    });
-
-    await waitFor(() => {
-      expect(onComplete).toHaveBeenCalledWith([{ path: 'claims/test-file.pdf' }]);
-    });
-  });
-
-  it('respects maxFiles limit', async () => {
-    const onComplete = vi.fn();
-
-    render(
-      <FileUploader
-        folder="claims"
-        maxFiles={2}
         onUploadComplete={onComplete}
         uploadAction={mockUploadAction}
         deleteAction={mockDeleteAction}
@@ -88,28 +52,62 @@ describe('FileUploader', () => {
     const files = [
       new File(['1'], '1.pdf', { type: 'application/pdf' }),
       new File(['2'], '2.pdf', { type: 'application/pdf' }),
-      new File(['3'], '3.pdf', { type: 'application/pdf' }),
     ];
     const input = screen.getByTestId('file-upload-input');
 
     fireEvent.change(input, { target: { files } });
 
     await waitFor(() => {
-      // Should show warning toast
-      // And only upload 2 files
-      expect(mockUploadAction).toHaveBeenCalledTimes(2);
+      // Should be called for each file
+      expect(onComplete).toHaveBeenCalledTimes(2);
+      expect(onComplete).toHaveBeenCalledWith([{ path: 'claims/test.pdf' }]);
     });
   });
 
-  it('handles removal correctly', async () => {
-    mockUploadAction.mockResolvedValue({ path: 'claims/file.pdf' });
-    const onRemove = vi.fn();
+  it('respects maxConcurrentUploads limit (Semaphore)', async () => {
+    let activeUploads = 0;
+    let maxObservedUploads = 0;
+
+    mockUploadAction.mockImplementation(async () => {
+      activeUploads++;
+      maxObservedUploads = Math.max(maxObservedUploads, activeUploads);
+      await new Promise(resolve => setTimeout(resolve, 50));
+      activeUploads--;
+      return { path: 'path.pdf' };
+    });
 
     render(
       <FileUploader
         folder="claims"
         onUploadComplete={() => {}}
-        onFileRemove={onRemove}
+        uploadAction={mockUploadAction}
+        deleteAction={mockDeleteAction}
+        maxConcurrentUploads={2}
+      />,
+    );
+
+    const files = Array.from({ length: 5 }, (_, i) =>
+      new File(['content'], `${i}.pdf`, { type: 'application/pdf' }));
+    const input = screen.getByTestId('file-upload-input');
+
+    fireEvent.change(input, { target: { files } });
+
+    // Wait for all to finish
+    await waitFor(() => expect(mockUploadAction).toHaveBeenCalledTimes(5), { timeout: 2000 });
+
+    // Verify limit was never exceeded
+    expect(maxObservedUploads).toBeLessThanOrEqual(2);
+  });
+
+  it('calls abort() on AbortController when removing an uploading file', async () => {
+    const abortSpy = vi.spyOn(AbortController.prototype, 'abort');
+
+    mockUploadAction.mockImplementation(() => new Promise(() => {})); // Hang forever
+
+    render(
+      <FileUploader
+        folder="claims"
+        onUploadComplete={() => {}}
         uploadAction={mockUploadAction}
         deleteAction={mockDeleteAction}
       />,
@@ -119,15 +117,40 @@ describe('FileUploader', () => {
     const input = screen.getByTestId('file-upload-input');
     fireEvent.change(input, { target: { files: [file] } });
 
-    // Wait for upload to complete (trash icon appears)
+    // Find and click remove while uploading
     await waitFor(() => expect(screen.getByTitle('Rimuovi')).toBeInTheDocument());
+    fireEvent.click(screen.getByTitle('Rimuovi'));
 
-    const removeBtn = screen.getByTitle('Rimuovi');
-    fireEvent.click(removeBtn);
+    expect(abortSpy).toHaveBeenCalled();
+
+    abortSpy.mockRestore();
+  });
+
+  it('handles retry logic correctly', async () => {
+    mockUploadAction
+      .mockRejectedValueOnce(new Error('Fail'))
+      .mockResolvedValueOnce({ path: 'success.pdf' });
+
+    render(
+      <FileUploader
+        folder="claims"
+        onUploadComplete={() => {}}
+        uploadAction={mockUploadAction}
+        deleteAction={mockDeleteAction}
+      />,
+    );
+
+    const file = new File(['x'], 'file.pdf', { type: 'application/pdf' });
+    fireEvent.change(screen.getByTestId('file-upload-input'), { target: { files: [file] } });
+
+    // Wait for error
+    await waitFor(() => expect(screen.getByTitle('Riprova')).toBeInTheDocument());
+
+    // Click retry
+    fireEvent.click(screen.getByTitle('Riprova'));
 
     await waitFor(() => {
-      expect(mockDeleteAction).toHaveBeenCalledWith('claims/file.pdf');
-      expect(onRemove).toHaveBeenCalledWith('claims/file.pdf');
+      expect(mockUploadAction).toHaveBeenCalledTimes(2);
     });
   });
 });

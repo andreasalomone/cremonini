@@ -1,6 +1,6 @@
 'use client';
 
-import { BadgeInfo, CheckCircle2, FileUp, History, Info, TrendingUp } from 'lucide-react';
+import { BadgeInfo, CheckCircle2, FileUp, History, TrendingUp } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import type { ClaimActivity } from '@/models/Schema';
@@ -20,10 +20,9 @@ const activityIcons: Record<string, ReactNode> = {
 };
 
 export const ClaimTimeline = ({ activities }: ClaimTimelineProps) => {
-  if (!activities || activities.length === 0) {
+  if (!Array.isArray(activities) || activities.length === 0) {
     return (
       <div className="flex h-32 flex-col items-center justify-center rounded-lg border border-dashed bg-muted/20 text-muted-foreground">
-        <Info className="mb-2 size-8 opacity-20" />
         <p className="text-sm">Nessuna attività registrata</p>
       </div>
     );

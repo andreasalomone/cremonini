@@ -31,22 +31,19 @@ export const DocumentUploader = ({ claimId, onSuccess }: DocumentUploaderProps) 
   const [docType, setDocType] = useState<NewDocument['type']>('CMR_DDT');
   const [isPending, startTransition] = useTransition();
 
-  const handleUploadComplete = (res: { path: string }[]) => {
-    const path = res?.[0]?.path;
-    if (!path) {
-      return;
-    }
-
+  const handleUploadComplete = (results: { path: string }[]) => {
     startTransition(async () => {
       try {
-        await addDocument(claimId, docType, path);
-        toast.success('Documento caricato');
+        await Promise.all(
+          results.map(res => addDocument(claimId, docType, res.path)),
+        );
+        toast.success(results.length > 1 ? 'Documenti caricati' : 'Documento caricato');
         if (onSuccess) {
           onSuccess();
         }
       } catch (error) {
         console.error('[DocumentUploader] Failed:', error);
-        toast.error('Errore durante il caricamento del documento');
+        toast.error('Errore durante il caricamento dei documenti');
       }
     });
   };

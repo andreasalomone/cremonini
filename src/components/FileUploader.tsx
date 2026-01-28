@@ -1,8 +1,12 @@
-'use client';
-
-import { CheckCircle2, FileText, RotateCcw, Trash2, UploadCloud, XCircle } from 'lucide-react';
+import {
+  CheckCircle2,
+  FileText,
+  RotateCcw,
+  Trash2,
+  UploadCloud,
+} from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Input } from '@/components/ui/input';
@@ -10,44 +14,133 @@ import {
   deleteDocument as deleteDocumentAction,
   uploadFile as uploadFileAction,
 } from '@/features/storage/actions/storage.actions';
-import { useIsMounted } from '@/hooks/useIsMounted';
-import { validateFile } from '@/libs/storage-constants';
+import {
+  ALLOWED_EXTENSIONS,
+  validateFile,
+} from '@/libs/storage-constants';
 import type { StorageFolder } from '@/libs/supabase-storage';
 import { cn } from '@/utils/Helpers';
 
-type FileStatus = {
-  id: string;
-  file: File;
-  progress: number;
-  status: 'queued' | 'uploading' | 'complete' | 'error';
-  path?: string;
-  error?: string;
-};
+type FileItemState =
+  | { status: 'queued'; id: string; file: File; progress: number }
+  | { status: 'uploading'; id: string; file: File; progress: number; abortController: AbortController }
+  | { status: 'complete'; id: string; file: File; progress: 100; path: string }
+  | { status: 'error'; id: string; file: File; progress: number; error: string };
+
+type Action =
+  | { type: 'ENQUEUE_FILES'; payload: FileItemState[] }
+  | { type: 'START_UPLOAD'; payload: { id: string; abortController: AbortController } }
+  | { type: 'UPDATE_PROGRESS'; payload: { id: string; progress: number } }
+  | { type: 'COMPLETE_UPLOAD'; payload: { id: string; path: string } }
+  | { type: 'ERROR_UPLOAD'; payload: { id: string; error: string } }
+  | { type: 'REMOVE_FILE'; payload: { id: string } }
+  | { type: 'RETRY_FILE'; payload: { id: string } };
+
+function uploadReducer(state: FileItemState[], action: Action): FileItemState[] {
+  switch (action.type) {
+    case 'ENQUEUE_FILES':
+      return [...state, ...action.payload];
+
+    case 'START_UPLOAD':
+      return state.map(item =>
+        item.id === action.payload.id
+          ? { ...item, status: 'uploading' as const, progress: 10, abortController: action.payload.abortController }
+          : item,
+      );
+
+    case 'UPDATE_PROGRESS':
+      return state.map(item =>
+        item.id === action.payload.id && item.status === 'uploading'
+          ? { ...item, progress: action.payload.progress }
+          : item,
+      );
+
+    case 'COMPLETE_UPLOAD':
+      return state.map(item =>
+        item.id === action.payload.id
+          ? {
+              status: 'complete' as const,
+              id: item.id,
+              file: item.file,
+              progress: 100,
+              path: action.payload.path,
+            }
+          : item,
+      );
+
+    case 'ERROR_UPLOAD':
+      return state.map(item =>
+        item.id === action.payload.id
+          ? {
+              status: 'error' as const,
+              id: item.id,
+              file: item.file,
+              progress: 0,
+              error: action.payload.error,
+            }
+          : item,
+      );
+
+    case 'REMOVE_FILE': {
+      const itemToRemove = state.find(i => i.id === action.payload.id);
+      if (itemToRemove?.status === 'uploading') {
+        itemToRemove.abortController.abort();
+      }
+      return state.filter(item => item.id !== action.payload.id);
+    }
+
+    case 'RETRY_FILE':
+      return state.map(item =>
+        item.id === action.payload.id
+          ? { status: 'queued' as const, id: item.id, file: item.file, progress: 0 }
+          : item,
+      );
+
+    default:
+      return state;
+  }
+}
 
 type FileUploaderProps = {
   folder: StorageFolder;
   accept?: string;
-  targetOrgId?: string; // Optional target organization for SuperAdmins
+  targetOrgId?: string;
   maxFiles?: number;
+  maxConcurrentUploads?: number;
+  labels?: {
+    dropPlaceholder: string;
+    subtitle: string;
+    limitReached: string;
+    uploadError: string;
+  };
   onUploadStart?: () => void;
   onUploadComplete: (res: { path: string }[]) => void;
   onUploadError?: (error: Error) => void;
-  onFileRemove?: (path: string) => void; // Callback when user removes a completed file
-  // Dependency Injection for testing
+  onFileRemove?: (path: string) => void;
   uploadAction?: typeof uploadFileAction;
   deleteAction?: typeof deleteDocumentAction;
   disabled?: boolean;
 };
 
+const DEFAULT_LABELS = {
+  dropPlaceholder: 'Carica documenti',
+  subtitle: 'PDF, PNG, JPG, DOC, XLS, TXT',
+  limitReached: 'Limite file raggiunto',
+  uploadError: 'Caricamento fallito',
+};
+
+const DEFAULT_ACCEPT = ALLOWED_EXTENSIONS.join(',');
+
 /**
- * File Uploader with drag-and-drop support
- * Uses Supabase Storage via server actions
+ * File Uploader with bounded concurrency.
  */
 export function FileUploader({
   folder,
-  accept = '.pdf,.png,.jpg,.jpeg,.gif,.webp,.eml,.xls,.xlsx,.doc,.docx,.txt,.avif,.heic,.heif',
+  accept = DEFAULT_ACCEPT,
   targetOrgId,
   maxFiles = 25,
+  maxConcurrentUploads = 3,
+  labels = DEFAULT_LABELS,
   onUploadStart,
   onUploadComplete,
   onUploadError,
@@ -56,77 +149,84 @@ export function FileUploader({
   deleteAction = deleteDocumentAction,
   disabled = false,
 }: FileUploaderProps) {
-  const isMounted = useIsMounted();
+  const [files, dispatch] = useReducer(uploadReducer, []);
   const [dragActive, setDragActive] = useState(false);
-  const [files, setFiles] = useState<FileStatus[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const processingIds = useRef<Set<string>>(new Set());
+  const abortControllers = useRef<Map<string, AbortController>>(new Map());
 
-  const uploadSingleFile = useCallback(
-    async (fileItem: FileStatus) => {
-      if (!isMounted.current) {
-        return null;
+  useEffect(() => {
+    const controllers = abortControllers.current;
+    const ids = processingIds.current;
+    return () => {
+      controllers.forEach(ctrl => ctrl.abort());
+      controllers.clear();
+      ids.clear();
+    };
+  }, []);
+
+  const processUpload = useCallback(
+    async (fileItem: { id: string; file: File }) => {
+      if (processingIds.current.has(fileItem.id)) {
+        return;
       }
+      processingIds.current.add(fileItem.id);
 
-      setFiles(prev =>
-        prev.map(f => (f.id === fileItem.id ? { ...f, status: 'uploading' as const, progress: 30 } : f)),
-      );
+      const controller = new AbortController();
+      abortControllers.current.set(fileItem.id, controller);
+      dispatch({ type: 'START_UPLOAD', payload: { id: fileItem.id, abortController: controller } });
 
       try {
-        // Client-side validation
-        const validation = validateFile(fileItem.file);
-        if (!validation.valid) {
-          throw new Error(validation.error);
-        }
+        // TODO: Server Actions don't support fine-grained progress.
+        // This is a UI-only indicator of activity.
+        dispatch({ type: 'UPDATE_PROGRESS', payload: { id: fileItem.id, progress: 50 } });
 
-        if (isMounted.current) {
-          setFiles(prev =>
-            prev.map(f => (f.id === fileItem.id ? { ...f, progress: 50 } : f)),
-          );
-        }
-
-        // Create FormData and upload via server action
         const formData = new FormData();
         formData.append('file', fileItem.file);
 
-        // Call the injected action
         const result = await uploadAction(formData, folder, targetOrgId);
 
-        if (isMounted.current) {
-          setFiles(prev =>
-            prev.map(f =>
-              f.id === fileItem.id
-                ? { ...f, status: 'complete' as const, progress: 100, path: result.path }
-                : f,
-            ),
-          );
-        }
-        return result.path;
+        dispatch({ type: 'COMPLETE_UPLOAD', payload: { id: fileItem.id, path: result.path } });
+        onUploadComplete([{ path: result.path }]);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Upload fallito';
-        if (isMounted.current) {
-          setFiles(prev =>
-            prev.map(f =>
-              f.id === fileItem.id ? { ...f, status: 'error' as const, error: errorMessage } : f,
-            ),
-          );
+        if (error instanceof Error && error.name === 'AbortError') {
+          return;
         }
+
+        const errorMessage = error instanceof Error ? error.message : labels.uploadError;
+        dispatch({ type: 'ERROR_UPLOAD', payload: { id: fileItem.id, error: errorMessage } });
         onUploadError?.(error instanceof Error ? error : new Error(errorMessage));
-        return null;
+      } finally {
+        processingIds.current.delete(fileItem.id);
+        abortControllers.current.delete(fileItem.id);
       }
     },
-    [folder, targetOrgId, onUploadError, uploadAction, isMounted],
+    [folder, targetOrgId, uploadAction, onUploadComplete, onUploadError, labels.uploadError],
   );
 
+  useEffect(() => {
+    if (disabled) {
+      return;
+    }
+
+    const queued = files.filter(f => f.status === 'queued');
+    const uploadingCount = files.filter(f => f.status === 'uploading').length;
+
+    if (queued.length > 0 && uploadingCount < maxConcurrentUploads) {
+      const slotsToFill = maxConcurrentUploads - uploadingCount;
+      const batch = queued.slice(0, slotsToFill);
+
+      batch.forEach(item => processUpload({ id: item.id, file: item.file }));
+    }
+  }, [files, maxConcurrentUploads, disabled, processUpload]);
+
   const handleFiles = useCallback(
-    async (newFiles: File[]) => {
-      if (disabled || !newFiles.length || !isMounted.current) {
+    (newFiles: File[]) => {
+      if (disabled || !newFiles.length) {
         return;
       }
 
-      // Check max files limit
-      const currentActiveFiles = files.length;
-      const availableSlots = maxFiles - currentActiveFiles;
-
+      const availableSlots = maxFiles - files.length;
       if (availableSlots <= 0) {
         toast.error(`Hai raggiunto il limite massimo di ${maxFiles} file.`);
         return;
@@ -134,107 +234,86 @@ export function FileUploader({
 
       let filesToProcess = newFiles;
       if (newFiles.length > availableSlots) {
-        toast.warning(`Sono stati caricati solo iprimi ${availableSlots} file per rispettare il limite.`);
+        toast.warning(`Sono stati caricati solo i primi ${availableSlots} file.`);
         filesToProcess = newFiles.slice(0, availableSlots);
       }
 
-      const fileItems: FileStatus[] = filesToProcess.map(f => ({
-        id: crypto.randomUUID(),
-        file: f,
-        progress: 0,
-        status: 'queued' as const,
-      }));
+      const fileItems: FileItemState[] = [];
+      const invalidFiles: string[] = [];
 
-      setFiles(prev => [...prev, ...fileItems]);
-      onUploadStart?.();
+      filesToProcess.forEach((f) => {
+        const validation = validateFile(f);
+        if (validation.valid) {
+          fileItems.push({
+            id: crypto.randomUUID(),
+            file: f,
+            progress: 0,
+            status: 'queued' as const,
+          });
+        } else {
+          invalidFiles.push(`${f.name}: ${validation.error}`);
+        }
+      });
 
-      // Start uploads and wait for all to finish
-      const uploadPromises = fileItems.map(item => uploadSingleFile(item));
-      const results = await Promise.all(uploadPromises);
-
-      const completedPaths = results
-        .filter((path): path is string => path !== null)
-        .map(path => ({ path }));
-
-      if (completedPaths.length > 0 && isMounted.current) {
-        onUploadComplete(completedPaths);
+      if (invalidFiles.length > 0) {
+        invalidFiles.forEach(err => toast.error(err));
       }
 
-      // We do NOT automatically clear completed files anymore, to allow user to see what they uploaded
-      // Only clear them if success is meant to be ephemeral (can be added as prop later if needed)
-    },
-    [uploadSingleFile, onUploadComplete, onUploadStart, maxFiles, files.length, isMounted, disabled],
-  );
-
-  // Remove a file (and delete from storage if complete)
-  const handleRemoveItem = useCallback(async (item: FileStatus) => {
-    if (disabled) {
-      return;
-    }
-    if (item.status === 'complete' && item.path) {
-      try {
-        await deleteAction(item.path);
-        onFileRemove?.(item.path);
-      } catch (error) {
-        console.error('Failed to delete file from storage', error);
-        toast.error('Errore durante la rimozione del file');
-        // We still remove from UI even if strage delete fails?
-        // Ideally yes, to not block the user.
-      }
-    }
-
-    if (isMounted.current) {
-      setFiles(prev => prev.filter(f => f.id !== item.id));
-    }
-  }, [deleteAction, onFileRemove, isMounted, disabled]);
-
-  const handleRetry = useCallback(
-    (fileItem: FileStatus) => {
-      if (disabled || !isMounted.current) {
+      if (fileItems.length === 0) {
         return;
       }
-      setFiles(prev =>
-        prev.map(f =>
-          f.id === fileItem.id ? { ...f, status: 'queued' as const, progress: 0, error: undefined } : f,
-        ),
-      );
-      uploadSingleFile(fileItem);
+
+      onUploadStart?.();
+      dispatch({ type: 'ENQUEUE_FILES', payload: fileItems });
     },
-    [uploadSingleFile, isMounted, disabled],
+    [files.length, maxFiles, disabled, onUploadStart],
+  );
+
+  const handleRemove = useCallback(
+    async (item: FileItemState) => {
+      if (disabled) {
+        return;
+      }
+
+      if (item.status === 'complete') {
+        try {
+          await deleteAction(item.path);
+          onFileRemove?.(item.path);
+        } catch (error) {
+          console.error('[Storage] Delete failed:', error);
+          toast.error('Errore durante la rimozione del file');
+        }
+      }
+
+      dispatch({ type: 'REMOVE_FILE', payload: { id: item.id } });
+    },
+    [deleteAction, onFileRemove, disabled],
+  );
+
+  const handleRetry = useCallback(
+    (id: string) => {
+      if (!disabled) {
+        dispatch({ type: 'RETRY_FILE', payload: { id } });
+      }
+    },
+    [disabled],
   );
 
   const handleDrag = useCallback((e: React.DragEvent, active: boolean) => {
     e.preventDefault();
     e.stopPropagation();
-    if (disabled || !isMounted.current) {
-      return;
+    if (!disabled) {
+      setDragActive(active);
     }
-    setDragActive(active);
-  }, [isMounted, disabled]);
+  }, [disabled]);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      if (disabled || !isMounted.current) {
-        return;
-      }
       setDragActive(false);
-      if (e.dataTransfer.files?.length) {
+      if (!disabled && e.dataTransfer.files?.length) {
         handleFiles(Array.from(e.dataTransfer.files));
-      }
-    },
-    [handleFiles, isMounted, disabled],
-  );
-
-  const handleInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (disabled) {
-        return;
-      }
-      if (e.target.files?.length) {
-        handleFiles(Array.from(e.target.files));
-        e.target.value = '';
       }
     },
     [handleFiles, disabled],
@@ -242,11 +321,10 @@ export function FileUploader({
 
   return (
     <div className="w-full space-y-4">
-      {/* Dropzone */}
       <motion.div
         role="button"
         tabIndex={disabled ? -1 : 0}
-        aria-label="Trascina documenti qui o premi per selezionare file"
+        aria-label={labels.dropPlaceholder}
         aria-disabled={disabled}
         layout
         className={cn(
@@ -277,11 +355,16 @@ export function FileUploader({
           disabled={disabled}
           className="hidden"
           accept={accept}
-          onChange={handleInputChange}
+          onChange={(e) => {
+            if (e.target.files) {
+              handleFiles(Array.from(e.target.files));
+              e.target.value = '';
+            }
+          }}
           data-testid="file-upload-input"
         />
 
-        <div className="flex flex-col items-center justify-center space-y-4 text-center">
+        <div className="pointer-events-none flex flex-col items-center justify-center space-y-4 text-center">
           <motion.div
             animate={dragActive ? { y: -8, scale: 1.1 } : { y: 0, scale: 1 }}
             className="rounded-full bg-background p-4 shadow-lg ring-1 ring-border/50"
@@ -296,10 +379,12 @@ export function FileUploader({
 
           <div className="space-y-1">
             <p className="text-lg font-medium tracking-tight text-foreground">
-              Carica documenti
+              {labels.dropPlaceholder}
             </p>
             <p className="text-sm text-muted-foreground">
-              PDF, PNG, JPG, DOC, XLS, TXT (max
+              {labels.subtitle}
+              {' '}
+              (max
               {' '}
               {maxFiles}
               {' '}
@@ -309,9 +394,8 @@ export function FileUploader({
         </div>
       </motion.div>
 
-      {/* File List */}
       <div className="space-y-2">
-        <AnimatePresence mode="popLayout">
+        <AnimatePresence mode="popLayout" initial={false}>
           {files.map(item => (
             <motion.div
               key={item.id}
@@ -321,11 +405,11 @@ export function FileUploader({
               layout
               className={cn(
                 'relative overflow-hidden rounded-2xl border bg-card/60 backdrop-blur-md p-3 shadow-sm transition-all hover:shadow-md hover:bg-card/80',
-                item.status === 'error' ? 'border-destructive/30' : 'border-border/40',
+                item.status === 'error' ? 'border-destructive/30 bg-destructive/5' : 'border-border/40',
               )}
             >
-              {/* Progress Bar (refined) */}
-              {item.status !== 'error' && item.progress < 100 && (
+              {/* Progress Bar */}
+              {item.status === 'uploading' && (
                 <motion.div
                   className="absolute inset-y-0 left-0 border-r border-primary/20 bg-primary/10"
                   initial={{ width: '0%' }}
@@ -348,36 +432,25 @@ export function FileUploader({
                       {' '}
                       KB •
                       {' '}
-                      {item.status === 'complete'
-                        ? 'Caricato'
-                        : item.status === 'error'
-                          ? 'Errore'
-                          : `${item.progress}%`}
+                      <span className="capitalize">{item.status}</span>
+                      {item.status === 'error' && item.error && ` • ${item.error}`}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex shrink-0 items-center gap-2">
-                  {item.status === 'complete' && (
-                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                      <CheckCircle2 className="size-5 text-green-500" />
-                    </motion.div>
-                  )}
+                  {item.status === 'complete' && <CheckCircle2 className="size-5 text-green-500" />}
                   {item.status === 'uploading' && (
                     <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                   )}
-                  {item.status === 'error' && (
-                    <XCircle className="size-5 text-destructive" />
-                  )}
 
-                  {/* Actions: Retry or Delete */}
                   {item.status === 'error'
                     ? (
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleRetry(item);
+                            handleRetry(item.id);
                           }}
                           className="rounded-full p-1 transition-colors hover:bg-muted"
                           title="Riprova"
@@ -390,12 +463,12 @@ export function FileUploader({
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleRemoveItem(item);
+                            handleRemove(item);
                           }}
                           className="rounded-full p-1 transition-colors hover:bg-muted hover:text-destructive"
                           title="Rimuovi"
                         >
-                          <Trash2 className="size-4" />
+                          <Trash2 className="size-4 text-muted-foreground hover:text-destructive" />
                         </button>
                       )}
                 </div>
