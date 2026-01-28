@@ -12,10 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  addDocument,
-  DOCUMENT_TYPE_OPTIONS,
-} from '@/features/documents/actions/documents.actions';
+import { addDocument } from '@/features/documents/actions/documents.actions';
+import { DOCUMENT_TYPE_OPTIONS } from '@/features/documents/constants';
 import type { NewDocument } from '@/models/Schema';
 
 const FileUploader = dynamic(() => import('@/components/FileUploader').then(mod => mod.FileUploader), {

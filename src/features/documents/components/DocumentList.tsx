@@ -5,10 +5,8 @@ import { useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import {
-  deleteDocument,
-  DOCUMENT_TYPE_OPTIONS,
-} from '@/features/documents/actions/documents.actions';
+import { deleteDocument } from '@/features/documents/actions/documents.actions';
+import { DOCUMENT_TYPE_OPTIONS } from '@/features/documents/constants';
 import type { Document } from '@/models/Schema';
 
 type DocumentListProps = {
