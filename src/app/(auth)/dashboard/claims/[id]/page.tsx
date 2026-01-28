@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { ChevronLeft, History } from 'lucide-react';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +13,8 @@ import { DocumentUploadDialog } from '@/features/claims/components/DocumentUploa
 import { EconomicFields } from '@/features/claims/components/EconomicFields';
 import { CLAIM_STATE_OPTIONS, CLAIM_TYPE_OPTIONS } from '@/features/claims/constants';
 import { checkIsSuperAdmin } from '@/libs/auth-utils';
-import { serialize } from '@/utils/serialization';
+import type { ClaimActivity, Document as ClaimDocument } from '@/models/Schema';
+import { serialize, type Serialized } from '@/utils/serialization';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,141 +24,263 @@ type PageProps = {
   }>;
 };
 
+// ----------------------------------------------------------------------
+// View Model & Types
+// ----------------------------------------------------------------------
+
+type ClaimViewModel = {
+  id: string;
+  shortId: string;
+  status: string;
+  typeLabel: string;
+  stateLabel: string;
+  formattedCreatedAt: string;
+  formattedEventDate: string;
+  location: string;
+  documentNumber: string;
+  carrierName: string;
+  thirdPartyName: string | null;
+  description: string;
+  documents: Serialized<ClaimDocument>[];
+  activities: Serialized<ClaimActivity>[];
+  economics: {
+    estimatedValue: string;
+    verifiedDamage: string;
+    claimedAmount: string;
+    recoveredAmount: string;
+    estimatedRecovery: string;
+  };
+};
+
+const formatDate = (date: Date | string | number | null): string => {
+  if (!date) {
+    return '-';
+  }
+  return new Date(date).toLocaleDateString('it-IT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+};
+
+const formatCurrencyString = (val: number | string | null | undefined): string => {
+  if (val === null || val === undefined) {
+    return '';
+  }
+  return String(val);
+};
+
+/**
+ * Transforms the raw API response (after serialization) into a safe View Model.
+ */
+const toClaimViewModel = (claim: any): ClaimViewModel => {
+  // Safe option lookup
+  const typeOption = CLAIM_TYPE_OPTIONS.find(opt => opt.value === claim.type);
+  const typeLabel = typeOption ? typeOption.label : claim.type;
+
+  const stateOption = CLAIM_STATE_OPTIONS.find(opt => opt.value === claim.state);
+  const stateLabel = stateOption ? stateOption.label : claim.state;
+
+  return {
+    id: claim.id,
+    shortId: claim.id.slice(0, 8),
+    status: claim.status,
+    typeLabel,
+    stateLabel,
+    formattedCreatedAt: formatDate(claim.createdAt),
+    formattedEventDate: formatDate(claim.eventDate),
+    location: claim.location || '-',
+    documentNumber: claim.documentNumber || '-',
+    carrierName: claim.carrierName || '-',
+    thirdPartyName: claim.hasThirdPartyResponsible ? (claim.thirdPartyName || '-') : null,
+    description: claim.description || 'Nessuna descrizione fornita.',
+    documents: (claim.documents as Serialized<ClaimDocument>[]) ?? [],
+    activities: (claim.activities as Serialized<ClaimActivity>[]) ?? [],
+    economics: {
+      estimatedValue: formatCurrencyString(claim.estimatedValue),
+      verifiedDamage: formatCurrencyString(claim.verifiedDamage),
+      claimedAmount: formatCurrencyString(claim.claimedAmount),
+      recoveredAmount: formatCurrencyString(claim.recoveredAmount),
+      estimatedRecovery: formatCurrencyString(claim.estimatedRecovery),
+    },
+  };
+};
+
+// ----------------------------------------------------------------------
+// Main Page Component
+// ----------------------------------------------------------------------
+
 export default async function ClaimDetailPage({ params }: PageProps) {
-  const { id } = await params;
-  const { orgId } = await auth();
+  // 1. Parallelize initial context resolution
+  const [resolvedParams, session] = await Promise.all([
+    params,
+    auth(),
+  ]);
+
+  const { id } = resolvedParams;
+  const { orgId } = session;
+
+  // 2. Guard: Authentication State
+  if (!orgId) {
+    redirect('/sign-in');
+  }
+
+  // 3. Logic: SuperAdmin Check
   const isSuperAdmin = checkIsSuperAdmin(orgId);
   const readOnly = !isSuperAdmin;
 
+  // 4. Data Fetching
   const rawClaim = await getClaimById(id);
 
   if (!rawClaim) {
     notFound();
   }
 
-  const claim = serialize(rawClaim);
+  // 5. Security: IDOR Protection (Defense in Depth)
+  // Although `getClaimById` already filters by orgId for non-admins,
+  // we add an explicit check here to ensure safety even if the action changes.
+  // CRITICAL: SuperAdmins CAN view claims from other orgs.
+  if (!isSuperAdmin && rawClaim.orgId !== orgId) {
+    // This should ideally strictly never happen if getClaimById is working correctly,
+    // but if it does, it's a security incident.
+    console.error(`[Security Alert] IDOR attempt blocked. User Org: ${orgId}, Claim Org: ${rawClaim.orgId}`);
+    notFound();
+  }
 
-  const typeLabel = CLAIM_TYPE_OPTIONS.find(opt => opt.value === claim.type)?.label || claim.type;
-  const stateLabel = CLAIM_STATE_OPTIONS.find(opt => opt.value === claim.state)?.label || claim.state;
+  // 6. Transformation
+  const claimModel = toClaimViewModel(serialize(rawClaim));
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header / Breadcrumbs */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/dashboard/claims">
-              <ChevronLeft className="size-5" />
-            </Link>
-          </Button>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight">
-                Sinistro
-                {claim.id.slice(0, 8)}
-              </h1>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase text-muted-foreground">
-                {stateLabel}
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {typeLabel}
-              {' '}
-              • Creato il
-              {new Date(claim.createdAt).toLocaleDateString('it-IT')}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <ClaimStatusSelect claimId={claim.id} currentStatus={claim.status} readOnly={readOnly} />
-        </div>
-      </div>
+      {/* Header */}
+      <HeaderSection claim={claimModel} readOnly={readOnly} />
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Main Content (2/3) */}
+        {/* Main Content */}
         <div className="space-y-6 lg:col-span-2">
-          {/* General Information */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Informazioni Generali</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-6 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <span className="text-xs font-medium uppercase text-muted-foreground">Data Accadimento</span>
-                  <p className="text-sm">{new Date(claim.eventDate).toLocaleDateString('it-IT')}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-xs font-medium uppercase text-muted-foreground">Luogo</span>
-                  <p className="text-sm">{claim.location || '-'}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-xs font-medium uppercase text-muted-foreground">Numero Documento</span>
-                  <p className="text-sm">{claim.documentNumber || '-'}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-xs font-medium uppercase text-muted-foreground">Vettore / Depositario</span>
-                  <p className="text-sm">{claim.carrierName || '-'}</p>
-                </div>
-                {claim.hasThirdPartyResponsible && (
-                  <div className="space-y-1">
-                    <span className="text-xs font-medium uppercase text-muted-foreground">Terzo Responsabile</span>
-                    <p className="text-sm">{claim.thirdPartyName || '-'}</p>
-                  </div>
-                )}
-                <div className="col-span-full space-y-1">
-                  <span className="text-xs font-medium uppercase text-muted-foreground">Descrizione</span>
-                  <p className="text-sm leading-relaxed">{claim.description || 'Nessuna descrizione fornita.'}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <GeneralInfoCard claim={claimModel} />
 
-          {/* Economic Data */}
           <EconomicFields
-            claimId={claim.id}
-            initialValues={{
-              estimatedValue: claim.estimatedValue as string,
-              verifiedDamage: claim.verifiedDamage as string,
-              claimedAmount: claim.claimedAmount as string,
-              recoveredAmount: claim.recoveredAmount as string,
-              estimatedRecovery: claim.estimatedRecovery as string,
-            }}
+            claimId={claimModel.id}
+            initialValues={claimModel.economics}
             onSave={updateClaimEconomics}
             readOnly={readOnly}
           />
 
-          {/* Documents Section */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="text-lg text-primary">Documentazione</CardTitle>
-              <DocumentUploadDialog claimId={claim.id} />
-            </CardHeader>
-            <CardContent>
-              <DocumentList
-                documents={claim.documents || []}
-                onDownload={getDocumentUrl}
-              />
-            </CardContent>
-          </Card>
+          <DocumentsCard claim={claimModel} />
         </div>
 
-        {/* Sidebar (1/3) - Timeline */}
+        {/* Sidebar */}
         <div className="space-y-6">
-          <Card className="h-full">
-            <CardHeader className="border-b bg-muted/30 pb-4">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <History className="size-5 text-primary" />
-                Timeline Attività
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <ClaimTimeline activities={claim.activities || []} />
-            </CardContent>
-          </Card>
+          <TimelineCard activities={claimModel.activities} />
         </div>
       </div>
     </div>
+  );
+}
+
+// ----------------------------------------------------------------------
+// Sub-Components
+// ----------------------------------------------------------------------
+
+const InfoField = ({ label, value }: { label: string; value: string }) => (
+  <div className="space-y-1">
+    <span className="text-xs font-medium uppercase text-muted-foreground">{label}</span>
+    <p className="text-sm">{value}</p>
+  </div>
+);
+
+function HeaderSection({ claim, readOnly }: { claim: ClaimViewModel; readOnly: boolean }) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" asChild>
+          <Link href="/dashboard/claims" aria-label="Back to claims">
+            <ChevronLeft className="size-5" />
+          </Link>
+        </Button>
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">
+              {`Sinistro ${claim.shortId}`}
+            </h1>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase text-muted-foreground">
+              {claim.stateLabel}
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {`${claim.typeLabel} • Creato il ${claim.formattedCreatedAt}`}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <ClaimStatusSelect
+          claimId={claim.id}
+          currentStatus={claim.status}
+          readOnly={readOnly}
+        />
+      </div>
+    </div>
+  );
+}
+
+function GeneralInfoCard({ claim }: { claim: ClaimViewModel }) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg">Informazioni Generali</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-6 sm:grid-cols-2">
+          <InfoField label="Data Accadimento" value={claim.formattedEventDate} />
+          <InfoField label="Luogo" value={claim.location} />
+          <InfoField label="Numero Documento" value={claim.documentNumber} />
+          <InfoField label="Vettore / Depositario" value={claim.carrierName} />
+
+          {claim.thirdPartyName && (
+            <InfoField label="Terzo Responsabile" value={claim.thirdPartyName} />
+          )}
+
+          <div className="col-span-full space-y-1">
+            <span className="text-xs font-medium uppercase text-muted-foreground">Descrizione</span>
+            <p className="text-sm leading-relaxed">{claim.description}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DocumentsCard({ claim }: { claim: ClaimViewModel }) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-3">
+        <CardTitle className="text-lg text-primary">Documentazione</CardTitle>
+        <DocumentUploadDialog claimId={claim.id} />
+      </CardHeader>
+      <CardContent>
+        <DocumentList
+          documents={claim.documents}
+          onDownload={getDocumentUrl}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
+function TimelineCard({ activities }: { activities: any[] }) {
+  return (
+    <Card className="h-full">
+      <CardHeader className="border-b bg-muted/30 pb-4">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <History className="size-5 text-primary" />
+          Timeline Attività
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-6">
+        <ClaimTimeline activities={activities || []} />
+      </CardContent>
+    </Card>
   );
 }
