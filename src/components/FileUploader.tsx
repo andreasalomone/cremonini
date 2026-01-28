@@ -16,6 +16,7 @@ import {
 } from '@/features/storage/actions/storage.actions';
 import {
   ALLOWED_EXTENSIONS,
+  ALLOWED_MIME_TYPES,
   validateFile,
 } from '@/libs/storage-constants';
 import type { StorageFolder } from '@/libs/supabase-storage';
@@ -132,7 +133,7 @@ const DEFAULT_LABELS = {
   uploadError: 'Caricamento fallito',
 };
 
-const DEFAULT_ACCEPT = ALLOWED_EXTENSIONS.join(',');
+const DEFAULT_ACCEPT = [...ALLOWED_MIME_TYPES, ...ALLOWED_EXTENSIONS].join(',');
 
 /**
  * File Uploader with bounded concurrency.

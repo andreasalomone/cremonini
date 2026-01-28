@@ -16,6 +16,12 @@ export const ALLOWED_MIME_TYPES = [
 ] as const;
 
 export const ALLOWED_EXTENSIONS = [
+  '.pdf',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.gif',
+  '.webp',
   '.eml',
   '.xls',
   '.xlsx',
