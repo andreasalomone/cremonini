@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { addDocument } from '@/features/documents/actions/documents.actions';
+import { addDocuments } from '@/features/documents/actions/documents.actions';
 import { DOCUMENT_TYPE_OPTIONS } from '@/features/documents/constants';
 import type { NewDocument } from '@/models/Schema';
 
@@ -31,16 +31,22 @@ export const DocumentUploader = ({ claimId, onSuccess }: DocumentUploaderProps) 
 
   const handleUploadComplete = (results: { path: string }[]) => {
     startTransition(async () => {
-      try {
-        await Promise.all(
-          results.map(res => addDocument(claimId, docType, res.path)),
-        );
-        toast.success(results.length > 1 ? 'Documenti caricati' : 'Documento caricato');
+      const res = await addDocuments(
+        claimId,
+        results.map(r => ({
+          path: r.path,
+          filename: r.path.split('/').pop(),
+          type: docType,
+        })),
+      );
+
+      if (res.success) {
+        toast.success(res.count > 1 ? 'Documenti caricati' : 'Documento caricato');
         if (onSuccess) {
           onSuccess();
         }
-      } catch (error) {
-        console.error('[DocumentUploader] Failed:', error);
+      } else {
+        console.error('[DocumentUploader] Failed:', res.error);
         toast.error('Errore durante il caricamento dei documenti');
       }
     });
@@ -69,7 +75,7 @@ export const DocumentUploader = ({ claimId, onSuccess }: DocumentUploaderProps) 
 
       <FileUploader
         folder="documents"
-        onUploadComplete={handleUploadComplete}
+        onAllUploadsComplete={handleUploadComplete}
         onUploadError={(error) => {
           console.error('Upload error:', error);
         }}

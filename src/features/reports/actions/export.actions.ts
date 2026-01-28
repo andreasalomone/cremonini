@@ -107,6 +107,10 @@ export async function exportReportData(input: ExportInput): Promise<string> {
     return Buffer.from(buffer).toString('base64');
   } catch (error) {
     logger.error('[ExportAction] Export failed:', error);
+    // Preserve authorization errors for proper client feedback
+    if (error instanceof Error && error.message.startsWith('Unauthorized')) {
+      throw error;
+    }
     throw new Error('Export failed');
   }
 }

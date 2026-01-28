@@ -114,7 +114,10 @@ type FileUploaderProps = {
     uploadError: string;
   };
   onUploadStart?: () => void;
-  onUploadComplete: (res: { path: string }[]) => void;
+  /** @deprecated Use onAllUploadsComplete for batch operations */
+  onUploadComplete?: (res: { path: string }[]) => void;
+  /** Called once when ALL files in the current batch have finished uploading (success or error) */
+  onAllUploadsComplete?: (results: { path: string }[]) => void;
   onUploadError?: (error: Error) => void;
   onFileRemove?: (path: string) => void;
   uploadAction?: typeof uploadFileAction;
@@ -143,6 +146,7 @@ export function FileUploader({
   labels = DEFAULT_LABELS,
   onUploadStart,
   onUploadComplete,
+  onAllUploadsComplete,
   onUploadError,
   onFileRemove,
   uploadAction = uploadFileAction,
@@ -154,6 +158,9 @@ export function FileUploader({
   const inputRef = useRef<HTMLInputElement>(null);
   const processingIds = useRef<Set<string>>(new Set());
   const abortControllers = useRef<Map<string, AbortController>>(new Map());
+  // Track batch state for onAllUploadsComplete
+  const batchStartedRef = useRef(false);
+  const batchCompleteFiredRef = useRef(false);
 
   useEffect(() => {
     const controllers = abortControllers.current;
@@ -164,6 +171,25 @@ export function FileUploader({
       ids.clear();
     };
   }, []);
+
+  // Detect when a batch of uploads is complete and fire onAllUploadsComplete
+  useEffect(() => {
+    if (!onAllUploadsComplete || files.length === 0) {
+      return;
+    }
+
+    const hasQueued = files.some(f => f.status === 'queued');
+    const hasUploading = files.some(f => f.status === 'uploading');
+    const completedFiles = files.filter(f => f.status === 'complete');
+
+    // Batch is complete when: no queued, no uploading, and at least one complete
+    const batchComplete = !hasQueued && !hasUploading && completedFiles.length > 0;
+
+    if (batchComplete && batchStartedRef.current && !batchCompleteFiredRef.current) {
+      batchCompleteFiredRef.current = true;
+      onAllUploadsComplete(completedFiles.map(f => ({ path: f.path })));
+    }
+  }, [files, onAllUploadsComplete]);
 
   const processUpload = useCallback(
     async (fileItem: { id: string; file: File }) => {
@@ -187,7 +213,8 @@ export function FileUploader({
         const result = await uploadAction(formData, folder, targetOrgId);
 
         dispatch({ type: 'COMPLETE_UPLOAD', payload: { id: fileItem.id, path: result.path } });
-        onUploadComplete([{ path: result.path }]);
+        // Legacy per-file callback (deprecated)
+        onUploadComplete?.([{ path: result.path }]);
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
           return;
@@ -262,6 +289,10 @@ export function FileUploader({
       if (fileItems.length === 0) {
         return;
       }
+
+      // Mark batch as started and reset completion flag for new batch
+      batchStartedRef.current = true;
+      batchCompleteFiredRef.current = false;
 
       onUploadStart?.();
       dispatch({ type: 'ENQUEUE_FILES', payload: fileItems });

@@ -9,6 +9,8 @@ import { Env } from '@/libs/Env';
 import { logger } from '@/libs/Logger';
 import { claimActivitiesSchema, claimsSchema, documentsSchema, type NewDocument } from '@/models/Schema';
 
+import { getDocumentTypeFromPath } from '../constants';
+
 /**
  * Add a document to a claim.
  * Verifies claim ownership before allowing document upload.
@@ -66,6 +68,83 @@ export async function addDocument(
   } catch (error) {
     logger.error('[DocumentsAction] addDocument failed:', error);
     throw error;
+  }
+}
+
+export type AddDocumentInput = {
+  path: string;
+  filename?: string;
+  type?: NewDocument['type'];
+};
+
+/**
+ * Add multiple documents to a claim in a single transaction.
+ * Verifies claim ownership once, inserts all documents atomically,
+ * and logs a single activity entry for the batch.
+ */
+export async function addDocuments(
+  claimId: string,
+  files: AddDocumentInput[],
+): Promise<{ success: true; count: number } | { success: false; error: string }> {
+  try {
+    if (files.length === 0) {
+      return { success: true, count: 0 };
+    }
+
+    const { orgId, userId } = await auth();
+
+    if (!orgId || !userId) {
+      return { success: false, error: 'Unauthorized: No Organization or User context' };
+    }
+
+    // Verify claim belongs to org (unless superadmin)
+    const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
+
+    const claim = await db.query.claimsSchema.findFirst({
+      where: isSuperAdmin
+        ? eq(claimsSchema.id, claimId)
+        : and(eq(claimsSchema.id, claimId), eq(claimsSchema.orgId, orgId)),
+      columns: { id: true, orgId: true },
+    });
+
+    if (!claim) {
+      return { success: false, error: 'Claim not found or access denied' };
+    }
+
+    // Build document values with inferred types
+    const docValues = files.map((file) => {
+      const inferredType = file.type ?? getDocumentTypeFromPath(file.path);
+      const filename = file.filename ?? file.path.split('/').pop();
+
+      return {
+        claimId,
+        type: inferredType,
+        url: file.path, // Keep url populated for backwards compat
+        path: file.path,
+        filename,
+      };
+    });
+
+    await db.transaction(async (tx) => {
+      await tx.insert(documentsSchema).values(docValues);
+
+      await tx.insert(claimActivitiesSchema).values({
+        claimId,
+        userId,
+        actionType: 'DOC_UPLOAD',
+        description: files.length === 1
+          ? `Documento caricato: ${docValues[0]!.filename || docValues[0]!.type}`
+          : `Documenti caricati (${files.length})`,
+        metadata: { count: files.length, files: docValues.map(d => ({ type: d.type, filename: d.filename })) },
+      });
+    });
+
+    revalidatePath('/dashboard/claims');
+    revalidatePath(`/dashboard/claims/${claimId}`);
+    return { success: true, count: files.length };
+  } catch (error) {
+    logger.error('[DocumentsAction] addDocuments failed:', error);
+    return { success: false, error: 'Failed to save documents' };
   }
 }
 

@@ -4,6 +4,7 @@ import { auth, clerkClient } from '@clerk/nextjs/server';
 import { and, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
+import { getDocumentTypeFromPath } from '@/features/documents/constants';
 import { checkIsSuperAdmin } from '@/libs/auth-utils';
 import { db } from '@/libs/DB';
 import { calculateDeadlines, calculateExtendedDeadline } from '@/libs/deadline-logic';
@@ -191,8 +192,7 @@ export async function createClaim(data: CreateClaimInput) {
       estimatedValue: sanitizeCurrency(data.estimatedValue),
       estimatedRecovery: sanitizeCurrency(data.estimatedRecovery),
       description: data.description,
-      // Legacy field - populate with first document just in case, but rely on 'documents' table
-      documentPath: data.documentPaths?.[0] || null,
+      // documentPath is deprecated - documents are stored in the documents table
       reserveDeadline: formatDateNullable(reserveDeadline),
       prescriptionDeadline: formatDateNullable(prescriptionDeadline),
       stockInboundDate: data.stockInboundDate ? formatDate(data.stockInboundDate) : null,
@@ -220,19 +220,9 @@ export async function createClaim(data: CreateClaimInput) {
             throw new Error(`Invalid document path: ${path}. Must belong to organization ${targetOrgId}`);
           }
 
-          // 🧠 INTELLIGENT TYPE INFERENCE
-          const ext = path.split('.').pop()?.toLowerCase();
-          let docType: 'CMR_DDT' | 'PHOTO_REPORT' | 'CORRESPONDENCE' = 'CMR_DDT';
-
-          if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext || '')) {
-            docType = 'PHOTO_REPORT';
-          } else if (['eml', 'msg'].includes(ext || '')) {
-            docType = 'CORRESPONDENCE';
-          }
-
           return {
             claimId: inserted.id,
-            type: docType,
+            type: getDocumentTypeFromPath(path),
             url: path,
             path,
             filename: path.split('/').pop(),

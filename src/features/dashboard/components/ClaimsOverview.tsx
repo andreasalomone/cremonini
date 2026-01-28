@@ -34,7 +34,7 @@ export const ClaimsOverview = ({ open, total, className }: ClaimsOverviewProps) 
       </CardHeader>
       <CardContent>
         <div className="h-[200px] w-full">
-          <ResponsiveContainer width="100%" height="100%" debounce={50}>
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
             <PieChart>
               <Pie
                 data={data}

@@ -153,4 +153,52 @@ describe('FileUploader', () => {
       expect(mockUploadAction).toHaveBeenCalledTimes(2);
     });
   });
+
+  it('fires onAllUploadsComplete once when entire batch finishes', async () => {
+    let uploadCount = 0;
+    mockUploadAction.mockImplementation(async () => {
+      uploadCount++;
+      return { path: `claims/file${uploadCount}.pdf` };
+    });
+
+    const onAllComplete = vi.fn();
+    const onComplete = vi.fn();
+
+    render(
+      <FileUploader
+        folder="claims"
+        onUploadComplete={onComplete}
+        onAllUploadsComplete={onAllComplete}
+        uploadAction={mockUploadAction}
+        deleteAction={mockDeleteAction}
+      />,
+    );
+
+    const files = [
+      new File(['1'], '1.pdf', { type: 'application/pdf' }),
+      new File(['2'], '2.pdf', { type: 'application/pdf' }),
+      new File(['3'], '3.pdf', { type: 'application/pdf' }),
+    ];
+    const input = screen.getByTestId('file-upload-input');
+
+    fireEvent.change(input, { target: { files } });
+
+    await waitFor(() => {
+      // Individual callback should fire for each file
+      expect(onComplete).toHaveBeenCalledTimes(3);
+
+      // Batch callback should fire exactly once with all paths
+      expect(onAllComplete).toHaveBeenCalledTimes(1);
+      expect(onAllComplete).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ path: expect.stringMatching(/claims\/file\d\.pdf/) }),
+        ]),
+      );
+    });
+
+    // Verify batch contains all 3 files
+    const batchResults = onAllComplete.mock.calls[0]![0] as { path: string }[];
+
+    expect(batchResults).toHaveLength(3);
+  });
 });

@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { addDocument } from '@/features/documents/actions/documents.actions';
+import { addDocuments } from '@/features/documents/actions/documents.actions';
 import { DOCUMENT_TYPE_OPTIONS } from '@/features/documents/constants';
 import type { NewDocument } from '@/models/Schema';
 
@@ -50,36 +50,24 @@ export function DocumentUploadDialog({ claimId, targetOrgId, readOnly = false }:
     setIsProcessing(true);
 
     try {
-      // Parallelize DB operations
-      const results = await Promise.allSettled(
-        files.map((file) => {
-          const filename = file.path.split('/').pop() || 'documento';
-          return addDocument(claimId, documentType, file.path, filename);
-        }),
+      const result = await addDocuments(
+        claimId,
+        files.map(file => ({
+          path: file.path,
+          filename: file.path.split('/').pop(),
+          type: documentType,
+        })),
       );
 
-      let successCount = 0;
-      let failCount = 0;
-
-      for (const result of results) {
-        if (result.status === 'fulfilled') {
-          successCount++;
-        } else {
-          failCount++;
-          console.error('[DocumentUpload] Failed to link document:', result.reason);
-        }
-      }
-
-      if (failCount === 0) {
-        toast.success(`${successCount} documenti salvati con successo.`);
+      if (result.success) {
+        const msg = result.count === 1
+          ? 'Documento salvato con successo.'
+          : `${result.count} documenti salvati con successo.`;
+        toast.success(msg);
         setOpen(false);
         router.refresh();
-      } else if (successCount > 0) {
-        toast.warning(`${successCount} salvati, ma ${failCount} falliti. Controlla la console.`);
-        router.refresh();
-        // Keep dialog open to allow retry or inspection
       } else {
-        toast.error('Impossibile salvare i documenti. Riprova.');
+        toast.error(result.error || 'Impossibile salvare i documenti. Riprova.');
       }
     } catch {
       toast.error('Errore imprevisto durante il salvataggio.');
@@ -155,7 +143,7 @@ export function DocumentUploadDialog({ claimId, targetOrgId, readOnly = false }:
             folder="documents"
             targetOrgId={targetOrgId}
             maxFiles={25}
-            onUploadComplete={handleUploadComplete}
+            onAllUploadsComplete={handleUploadComplete}
             onUploadError={error => toast.error(error.message)}
             disabled={isProcessing}
           />
