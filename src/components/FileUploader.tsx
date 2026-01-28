@@ -36,6 +36,7 @@ type FileUploaderProps = {
   // Dependency Injection for testing
   uploadAction?: typeof uploadFileAction;
   deleteAction?: typeof deleteDocumentAction;
+  disabled?: boolean;
 };
 
 /**
@@ -44,7 +45,7 @@ type FileUploaderProps = {
  */
 export function FileUploader({
   folder,
-  accept = '.pdf,.png,.jpg,.jpeg,.gif,.webp,.eml',
+  accept = '.pdf,.png,.jpg,.jpeg,.gif,.webp,.eml,.xls,.xlsx,.doc,.docx,.txt,.avif,.heic,.heif',
   targetOrgId,
   maxFiles = 25,
   onUploadStart,
@@ -53,6 +54,7 @@ export function FileUploader({
   onFileRemove,
   uploadAction = uploadFileAction,
   deleteAction = deleteDocumentAction,
+  disabled = false,
 }: FileUploaderProps) {
   const isMounted = useIsMounted();
   const [dragActive, setDragActive] = useState(false);
@@ -117,7 +119,7 @@ export function FileUploader({
 
   const handleFiles = useCallback(
     async (newFiles: File[]) => {
-      if (!newFiles.length || !isMounted.current) {
+      if (disabled || !newFiles.length || !isMounted.current) {
         return;
       }
 
@@ -161,11 +163,14 @@ export function FileUploader({
       // We do NOT automatically clear completed files anymore, to allow user to see what they uploaded
       // Only clear them if success is meant to be ephemeral (can be added as prop later if needed)
     },
-    [uploadSingleFile, onUploadComplete, onUploadStart, maxFiles, files.length, isMounted],
+    [uploadSingleFile, onUploadComplete, onUploadStart, maxFiles, files.length, isMounted, disabled],
   );
 
   // Remove a file (and delete from storage if complete)
   const handleRemoveItem = useCallback(async (item: FileStatus) => {
+    if (disabled) {
+      return;
+    }
     if (item.status === 'complete' && item.path) {
       try {
         await deleteAction(item.path);
@@ -181,11 +186,11 @@ export function FileUploader({
     if (isMounted.current) {
       setFiles(prev => prev.filter(f => f.id !== item.id));
     }
-  }, [deleteAction, onFileRemove, isMounted]);
+  }, [deleteAction, onFileRemove, isMounted, disabled]);
 
   const handleRetry = useCallback(
     (fileItem: FileStatus) => {
-      if (!isMounted.current) {
+      if (disabled || !isMounted.current) {
         return;
       }
       setFiles(prev =>
@@ -195,39 +200,44 @@ export function FileUploader({
       );
       uploadSingleFile(fileItem);
     },
-    [uploadSingleFile, isMounted],
+    [uploadSingleFile, isMounted, disabled],
   );
 
   const handleDrag = useCallback((e: React.DragEvent, active: boolean) => {
     e.preventDefault();
     e.stopPropagation();
-    if (isMounted.current) {
-      setDragActive(active);
+    if (disabled || !isMounted.current) {
+      return;
     }
-  }, [isMounted]);
+    setDragActive(active);
+  }, [isMounted, disabled]);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      if (isMounted.current) {
-        setDragActive(false);
+      if (disabled || !isMounted.current) {
+        return;
       }
+      setDragActive(false);
       if (e.dataTransfer.files?.length) {
         handleFiles(Array.from(e.dataTransfer.files));
       }
     },
-    [handleFiles, isMounted],
+    [handleFiles, isMounted, disabled],
   );
 
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (disabled) {
+        return;
+      }
       if (e.target.files?.length) {
         handleFiles(Array.from(e.target.files));
         e.target.value = '';
       }
     },
-    [handleFiles],
+    [handleFiles, disabled],
   );
 
   return (
@@ -235,32 +245,36 @@ export function FileUploader({
       {/* Dropzone */}
       <motion.div
         role="button"
-        tabIndex={0}
+        tabIndex={disabled ? -1 : 0}
         aria-label="Trascina documenti qui o premi per selezionare file"
+        aria-disabled={disabled}
         layout
         className={cn(
-          'relative group cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed p-8 transition-colors duration-300 ease-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
+          'relative group overflow-hidden rounded-2xl border-2 border-dashed p-8 transition-colors duration-300 ease-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
           dragActive
             ? 'border-primary bg-primary/5 scale-[1.02]'
-            : 'border-muted-foreground/20 hover:border-primary/50 hover:bg-muted/30',
+            : disabled
+              ? 'border-muted cursor-not-allowed opacity-60 bg-muted/10'
+              : 'cursor-pointer border-muted-foreground/20 hover:border-primary/50 hover:bg-muted/30',
         )}
         onDragEnter={e => handleDrag(e, true)}
         onDragLeave={e => handleDrag(e, false)}
         onDragOver={e => e.preventDefault()}
         onDrop={handleDrop}
-        onClick={() => inputRef.current?.click()}
+        onClick={() => !disabled && inputRef.current?.click()}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
+          if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
             e.preventDefault();
             inputRef.current?.click();
           }
         }}
-        whileTap={{ scale: 0.98 }}
+        whileTap={{ scale: disabled ? 1 : 0.98 }}
       >
         <Input
           ref={inputRef}
           type="file"
           multiple
+          disabled={disabled}
           className="hidden"
           accept={accept}
           onChange={handleInputChange}
@@ -285,7 +299,7 @@ export function FileUploader({
               Carica documenti
             </p>
             <p className="text-sm text-muted-foreground">
-              PDF, PNG, JPG, EML (max
+              PDF, PNG, JPG, DOC, XLS, TXT (max
               {' '}
               {maxFiles}
               {' '}

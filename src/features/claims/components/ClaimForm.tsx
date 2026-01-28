@@ -4,11 +4,11 @@ import { useAuth } from '@clerk/nextjs';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format } from 'date-fns';
 import { ChevronDownIcon, Loader2, Search } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
-import { FileUploader } from '@/components/FileUploader';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -41,6 +41,10 @@ import type { CreateClaimFormValues } from '@/features/claims/schema';
 import { CreateClaimSchema } from '@/features/claims/schema';
 import { calculateDeadlines } from '@/libs/deadline-logic';
 import { Env } from '@/libs/Env';
+
+const FileUploader = dynamic(() => import('@/components/FileUploader').then(mod => mod.FileUploader), {
+  ssr: false,
+});
 
 export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
   const { orgId } = useAuth();
@@ -585,7 +589,7 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
             <FormItem>
               <FormLabel>Documenti di supporto (Max 25 file)</FormLabel>
               <FormDescription>
-                Carica PDF, Immagini o EML. Puoi caricare più file contemporaneamente.
+                Carica PDF, Immagini, Office o EML. Puoi caricare più file contemporaneamente.
               </FormDescription>
               <FormControl>
                 <FileUploader

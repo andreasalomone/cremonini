@@ -3,12 +3,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format } from 'date-fns';
 import { CalendarIcon, Loader2, Trash2 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
-import { FileUploader } from '@/components/FileUploader';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -27,6 +27,10 @@ import {
 } from '@/features/procura/actions/procura.actions';
 import type { PowerOfAttorney } from '@/models/Schema';
 import { cn } from '@/utils/Helpers';
+
+const FileUploader = dynamic(() => import('@/components/FileUploader').then(mod => mod.FileUploader), {
+  ssr: false,
+});
 
 const ProcuraFormSchema = z.object({
   documentPath: z.string().min(1, 'Documento obbligatorio'),

@@ -143,7 +143,10 @@ export const claimsSchema = pgTable('claims', {
 }));
 
 // Type inference exports
-export type Claim = typeof claimsSchema.$inferSelect;
+export type Claim = typeof claimsSchema.$inferSelect & {
+  documents?: Document[];
+  activities?: ClaimActivity[];
+};
 export type NewClaim = typeof claimsSchema.$inferInsert;
 
 // --- DOCUMENTS MODULE ---

@@ -2,12 +2,12 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, UploadCloud } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
-import { FileUploader } from '@/components/FileUploader';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -26,6 +26,10 @@ import {
 } from '@/components/ui/select';
 import { createProcura } from '@/features/procura/actions/procura.actions';
 import { GLOBAL_CREMONINI_ID, GLOBAL_CREMONINI_NAME } from '@/features/procura/constants';
+
+const FileUploader = dynamic(() => import('@/components/FileUploader').then(mod => mod.FileUploader), {
+  ssr: false,
+});
 
 const AdminPoaFormSchema = z.object({
   orgId: z.string().min(1, 'Selezionare una società o il gruppo'),
@@ -116,7 +120,7 @@ export const AdminPoaUploadForm = ({ organizations, onSuccess }: AdminPoaUploadF
             name="documentPath"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Allegato (PDF/Immagine)</FormLabel>
+                <FormLabel>Allegato (PDF, Immagini, Office)</FormLabel>
                 <FormControl>
                   <FileUploader
                     folder="procura"

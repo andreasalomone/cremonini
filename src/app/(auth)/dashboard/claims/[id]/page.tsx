@@ -11,9 +11,9 @@ import { ClaimTimeline } from '@/features/claims/components/ClaimTimeline';
 import { DocumentList } from '@/features/claims/components/DocumentList';
 import { DocumentUploadDialog } from '@/features/claims/components/DocumentUploadDialog';
 import { EconomicFields } from '@/features/claims/components/EconomicFields';
-import { CLAIM_STATE_OPTIONS, CLAIM_TYPE_OPTIONS } from '@/features/claims/constants';
+import { type ClaimViewModel, toClaimViewModel } from '@/features/claims/utils/claim-view-model';
 import { checkIsSuperAdmin } from '@/libs/auth-utils';
-import type { ClaimActivity, Document as ClaimDocument } from '@/models/Schema';
+import type { Claim } from '@/models/Schema';
 import { serialize, type Serialized } from '@/utils/serialization';
 
 export const dynamic = 'force-dynamic';
@@ -25,93 +25,14 @@ type PageProps = {
 };
 
 // ----------------------------------------------------------------------
-// View Model & Types
+// Main Page Component
 // ----------------------------------------------------------------------
-
-type ClaimViewModel = {
-  id: string;
-  shortId: string;
-  status: string;
-  typeLabel: string;
-  stateLabel: string;
-  formattedCreatedAt: string;
-  formattedEventDate: string;
-  location: string;
-  documentNumber: string;
-  carrierName: string;
-  thirdPartyName: string | null;
-  description: string;
-  documents: Serialized<ClaimDocument>[];
-  activities: Serialized<ClaimActivity>[];
-  economics: {
-    estimatedValue: string;
-    verifiedDamage: string;
-    claimedAmount: string;
-    recoveredAmount: string;
-    estimatedRecovery: string;
-  };
-};
-
-const formatDate = (date: Date | string | number | null): string => {
-  if (!date) {
-    return '-';
-  }
-  return new Date(date).toLocaleDateString('it-IT', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-};
-
-const formatCurrencyString = (val: number | string | null | undefined): string => {
-  if (val === null || val === undefined) {
-    return '';
-  }
-  return String(val);
-};
-
-/**
- * Transforms the raw API response (after serialization) into a safe View Model.
- */
-const toClaimViewModel = (claim: any): ClaimViewModel => {
-  // Safe option lookup
-  const typeOption = CLAIM_TYPE_OPTIONS.find(opt => opt.value === claim.type);
-  const typeLabel = typeOption ? typeOption.label : claim.type;
-
-  const stateOption = CLAIM_STATE_OPTIONS.find(opt => opt.value === claim.state);
-  const stateLabel = stateOption ? stateOption.label : claim.state;
-
-  return {
-    id: claim.id,
-    shortId: claim.id.slice(0, 8),
-    status: claim.status,
-    typeLabel,
-    stateLabel,
-    formattedCreatedAt: formatDate(claim.createdAt),
-    formattedEventDate: formatDate(claim.eventDate),
-    location: claim.location || '-',
-    documentNumber: claim.documentNumber || '-',
-    carrierName: claim.carrierName || '-',
-    thirdPartyName: claim.hasThirdPartyResponsible ? (claim.thirdPartyName || '-') : null,
-    description: claim.description || 'Nessuna descrizione fornita.',
-    documents: (claim.documents as Serialized<ClaimDocument>[]) ?? [],
-    activities: (claim.activities as Serialized<ClaimActivity>[]) ?? [],
-    economics: {
-      estimatedValue: formatCurrencyString(claim.estimatedValue),
-      verifiedDamage: formatCurrencyString(claim.verifiedDamage),
-      claimedAmount: formatCurrencyString(claim.claimedAmount),
-      recoveredAmount: formatCurrencyString(claim.recoveredAmount),
-      estimatedRecovery: formatCurrencyString(claim.estimatedRecovery),
-    },
-  };
-};
 
 // ----------------------------------------------------------------------
 // Main Page Component
 // ----------------------------------------------------------------------
 
 export default async function ClaimDetailPage({ params }: PageProps) {
-  // 1. Parallelize initial context resolution
   const [resolvedParams, session] = await Promise.all([
     params,
     auth(),
@@ -120,35 +41,28 @@ export default async function ClaimDetailPage({ params }: PageProps) {
   const { id } = resolvedParams;
   const { orgId } = session;
 
-  // 2. Guard: Authentication State
   if (!orgId) {
     redirect('/sign-in');
   }
 
-  // 3. Logic: SuperAdmin Check
   const isSuperAdmin = checkIsSuperAdmin(orgId);
   const readOnly = !isSuperAdmin;
 
-  // 4. Data Fetching
   const rawClaim = await getClaimById(id);
 
   if (!rawClaim) {
     notFound();
   }
 
-  // 5. Security: IDOR Protection (Defense in Depth)
-  // Although `getClaimById` already filters by orgId for non-admins,
-  // we add an explicit check here to ensure safety even if the action changes.
-  // CRITICAL: SuperAdmins CAN view claims from other orgs.
+  // Security: IDOR Protection (Defense in Depth)
+  // SuperAdmins CAN view claims from other orgs, but regular users cannot.
   if (!isSuperAdmin && rawClaim.orgId !== orgId) {
-    // This should ideally strictly never happen if getClaimById is working correctly,
-    // but if it does, it's a security incident.
     console.error(`[Security Alert] IDOR attempt blocked. User Org: ${orgId}, Claim Org: ${rawClaim.orgId}`);
     notFound();
   }
 
-  // 6. Transformation
-  const claimModel = toClaimViewModel(serialize(rawClaim));
+  const serializedClaim = serialize(rawClaim) as unknown as Serialized<Claim>;
+  const claimModel = toClaimViewModel(serializedClaim);
 
   return (
     <div className="flex flex-col gap-6">
@@ -167,7 +81,7 @@ export default async function ClaimDetailPage({ params }: PageProps) {
             readOnly={readOnly}
           />
 
-          <DocumentsCard claim={claimModel} />
+          <DocumentsCard claim={claimModel} readOnly={readOnly} superAdminTargetOrgId={isSuperAdmin ? claimModel.orgId : undefined} />
         </div>
 
         {/* Sidebar */}
@@ -252,12 +166,12 @@ function GeneralInfoCard({ claim }: { claim: ClaimViewModel }) {
   );
 }
 
-function DocumentsCard({ claim }: { claim: ClaimViewModel }) {
+function DocumentsCard({ claim, readOnly, superAdminTargetOrgId }: { claim: ClaimViewModel; readOnly: boolean; superAdminTargetOrgId?: string }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <CardTitle className="text-lg text-primary">Documentazione</CardTitle>
-        <DocumentUploadDialog claimId={claim.id} />
+        <DocumentUploadDialog claimId={claim.id} readOnly={readOnly} targetOrgId={superAdminTargetOrgId} />
       </CardHeader>
       <CardContent>
         <DocumentList

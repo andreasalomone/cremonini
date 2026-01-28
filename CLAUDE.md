@@ -44,7 +44,7 @@ Security is implemented at the application layer (not RLS). Every query checks `
 ```typescript
 const isSuperAdmin = orgId === Env.NEXT_PUBLIC_ADMIN_ORG_ID;
 // Admin sees ALL claims, company reps see only their org's claims
-where: isSuperAdmin ? undefined : eq(claimsSchema.orgId, orgId)
+where: isSuperAdmin ? undefined : eq(claimsSchema.orgId, orgId);
 ```
 
 The `checkIsSuperAdmin()` helper in `src/libs/auth-utils.ts` centralizes this check.
