@@ -1,11 +1,21 @@
 import { auth } from '@clerk/nextjs/server';
-import { ChevronLeft, History } from 'lucide-react';
+import { ChevronLeft, History, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getClaimById, updateClaimEconomics } from '@/features/claims/actions/claims.actions';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { deleteClaim, getClaimById, updateClaimEconomics } from '@/features/claims/actions/claims.actions';
 import { ClaimStatusSelect } from '@/features/claims/components/ClaimStatusSelect';
 import { ClaimTimeline } from '@/features/claims/components/ClaimTimeline';
 import { DocumentList } from '@/features/claims/components/DocumentList';
@@ -134,6 +144,45 @@ function HeaderSection({ claim, readOnly }: { claim: ClaimViewModel; readOnly: b
           currentStatus={claim.status}
           readOnly={readOnly}
         />
+
+        {!readOnly && (
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                aria-label="Elimina sinistro"
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Sei sicuro?</DialogTitle>
+                <DialogDescription>
+                  Questa azione è irreversibile. Il sinistro e tutti i documenti associati verranno eliminati permanentemente.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="gap-2 sm:gap-0">
+                <DialogClose asChild>
+                  <Button variant="outline">Annulla</Button>
+                </DialogClose>
+                <Button
+                  variant="destructive"
+                  onClick={async () => {
+                    const result = await deleteClaim(claim.id);
+                    if (result.success) {
+                      window.location.href = '/dashboard/claims';
+                    }
+                  }}
+                >
+                  Elimina
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </div>
   );

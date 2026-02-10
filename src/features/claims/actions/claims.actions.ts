@@ -10,7 +10,7 @@ import { db } from '@/libs/DB';
 import { calculateDeadlines, calculateExtendedDeadline } from '@/libs/deadline-logic';
 import { Env } from '@/libs/Env';
 import { logger } from '@/libs/Logger';
-import { getSignedUrl } from '@/libs/supabase-storage';
+import { deleteFile, getSignedUrl } from '@/libs/supabase-storage';
 import { claimActivitiesSchema, claimsSchema, documentsSchema } from '@/models/Schema';
 import { sanitizeCurrency } from '@/utils/Currency';
 
@@ -21,6 +21,7 @@ export type CreateClaimInput = {
   state: 'NATIONAL' | 'INTERNATIONAL';
   eventDate: Date;
   location: string;
+  riferimento?: string;
   documentNumber?: string;
   hasThirdPartyResponsible?: boolean;
   thirdPartyName?: string;
@@ -142,6 +143,40 @@ export async function getClaimById(id: string) {
   }
 }
 
+/**
+ * Calculates the next Riferimento number for an organization.
+ * Format: 3 characters, e.g. "001", "002"...
+ */
+export async function getNextRiferimento(orgId: string, tx?: any): Promise<string> {
+  const runner = tx || db;
+  try {
+    const lastClaim = await runner.query.claimsSchema.findFirst({
+      where: eq(claimsSchema.orgId, orgId),
+      orderBy: desc(claimsSchema.createdAt),
+      columns: { riferimento: true },
+    });
+
+    if (!lastClaim || !lastClaim.riferimento) {
+      return '001';
+    }
+
+    const lastNum = Number.parseInt(lastClaim.riferimento, 10);
+    if (Number.isNaN(lastNum)) {
+      return '001';
+    }
+
+    const nextNum = lastNum + 1;
+    if (nextNum > 999) {
+      logger.warn(`[ClaimsAction] Riferimento reached 999 for org ${orgId}. Rolling back to 001.`);
+      return '001';
+    }
+    return String(nextNum).padStart(3, '0');
+  } catch (error) {
+    logger.error(`[ClaimsAction] getNextRiferimento failed for ${orgId}:`, error);
+    return '001'; // Fallback to safe default
+  }
+}
+
 export async function createClaim(data: CreateClaimInput) {
   try {
     const { orgId, userId } = await auth();
@@ -185,6 +220,7 @@ export async function createClaim(data: CreateClaimInput) {
       state: data.state,
       eventDate: formatDate(eventDate),
       location: data.location,
+      riferimento: data.riferimento,
       documentNumber: data.documentNumber,
       hasThirdPartyResponsible: data.hasThirdPartyResponsible ?? false,
       thirdPartyName: data.thirdPartyName,
@@ -202,7 +238,28 @@ export async function createClaim(data: CreateClaimInput) {
     };
 
     const result = await db.transaction(async (tx) => {
-      const [inserted] = await tx.insert(claimsSchema).values(newClaim).returning();
+      // --- ATOMIC RIFERIMENTO GENERATION ---
+      // 1. Generate next if missing (fallback for safety) or verify uniqueness
+      let finalRiferimento = data.riferimento;
+      if (!finalRiferimento) {
+        finalRiferimento = await getNextRiferimento(targetOrgId, tx);
+      } else {
+        // Double check uniqueness per org to avoid race condition where two users pick the same number manually
+        const existing = await tx.query.claimsSchema.findFirst({
+          where: and(
+            eq(claimsSchema.orgId, targetOrgId),
+            eq(claimsSchema.riferimento, finalRiferimento),
+          ),
+        });
+        if (existing) {
+          throw new Error(`Il riferimento ${finalRiferimento} è già in uso.`);
+        }
+      }
+
+      const [inserted] = await tx.insert(claimsSchema).values({
+        ...newClaim,
+        riferimento: finalRiferimento,
+      }).returning();
 
       if (!inserted) {
         throw new Error('Failed to insert claim');
@@ -460,5 +517,62 @@ export async function getOrganizationOptions() {
   } catch (error) {
     logger.error('[ClaimsAction] Failed to get organization options:', error);
     return [];
+  }
+}
+
+/**
+ * Super Admin Action: Permanent deletion of a claim.
+ * Includes cleanup of all associated documents in storage.
+ */
+export async function deleteClaim(claimId: string) {
+  try {
+    const { orgId, userId } = await auth();
+
+    if (!userId) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const isSuperAdmin = checkIsSuperAdmin(orgId);
+
+    if (!isSuperAdmin) {
+      logger.warn(`[ClaimsAction] Unauthorized deletion attempted by user ${userId} on claim ${claimId}`);
+      return { success: false, error: 'Solo gli amministratori possono eliminare i sinistri' };
+    }
+
+    // 1. Fetch claim with documents to know what to delete from Storage
+    const claim = await db.query.claimsSchema.findFirst({
+      where: eq(claimsSchema.id, claimId),
+      with: { documents: true },
+    });
+
+    if (!claim) {
+      return { success: false, error: 'Sinistro non trovato' };
+    }
+
+    // 2. Execute deletion in transaction
+    await db.transaction(async (tx) => {
+      // Cascade handle is set in schema for documents and activities
+      // but we explicitly delete to be ultra-safe and trigger revalidation correctly
+      await tx.delete(claimsSchema).where(eq(claimsSchema.id, claimId));
+
+      // 3. Cleanup storage files
+      const deletePromises = claim.documents
+        ?.filter(doc => doc.path)
+        .map(doc => deleteFile(doc.path!)) || [];
+
+      // We don't await deletion inside the DB transaction to avoid blocking it,
+      // but we do it before revalidating.
+      await Promise.allSettled(deletePromises);
+    });
+
+    logger.info(`[ClaimsAction] Claim ${claimId} successfully deleted by user ${userId}`);
+
+    revalidatePath('/dashboard/claims');
+    revalidatePath(`/dashboard/claims/${claimId}`);
+
+    return { success: true };
+  } catch (error) {
+    logger.error(`[ClaimsAction] Failed to delete claim ${claimId}:`, error);
+    return { success: false, error: 'Errore durante l\'eliminazione' };
   }
 }

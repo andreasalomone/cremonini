@@ -13,6 +13,7 @@ export const CreateClaimSchema = z.object({
     message: 'Data sinistro obbligatoria',
   }),
   location: z.string().min(1, 'Luogo evento obbligatorio'),
+  riferimento: z.string().length(3, 'Il riferimento deve essere di 3 cifre').regex(/^\d{3}$/, 'Il riferimento deve essere numerico'),
   documentNumber: z.string().optional(),
   hasThirdPartyResponsible: z.boolean(),
   thirdPartyName: z.string().optional(),

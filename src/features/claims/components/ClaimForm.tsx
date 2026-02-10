@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { createClaim, getOrganizationOptions } from '@/features/claims/actions/claims.actions';
+import { createClaim, getNextRiferimento, getOrganizationOptions } from '@/features/claims/actions/claims.actions';
 import {
   CLAIM_STATE_OPTIONS,
   CLAIM_TYPE_OPTIONS,
@@ -63,6 +63,7 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
       type: 'TERRESTRIAL',
       state: 'NATIONAL',
       location: '',
+      riferimento: '',
       documentNumber: '',
       hasThirdPartyResponsible: true, // Default for TERRESTRIAL
       thirdPartyName: '',
@@ -107,6 +108,21 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
   const watchOutboundDate = form.watch('stockOutboundDate');
   const watchInboundReserve = form.watch('hasStockInboundReserve');
   const watchHasThirdParty = form.watch('hasThirdPartyResponsible');
+
+  // Auto-populate Riferimento
+  useEffect(() => {
+    const effectiveOrgId = isSuperAdmin ? watchTargetOrgId : orgId;
+    if (effectiveOrgId) {
+      getNextRiferimento(effectiveOrgId)
+        .then((nextRef) => {
+          form.setValue('riferimento', nextRef);
+        })
+        .catch((err) => {
+          console.error('[ClaimForm] Failed to fetch next riferimento:', err);
+          toast.error('Impossibile generare automaticamente il riferimento. Inseriscilo manualmente.');
+        });
+    }
+  }, [orgId, watchTargetOrgId, isSuperAdmin, form]);
 
   const [isUploading, setIsUploading] = useState(false);
 
@@ -444,20 +460,40 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
           }}
         />
 
-        {/* Location - NEW REQUIRED FIELD */}
-        <FormField
-          control={form.control}
-          name="location"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Luogo evento *</FormLabel>
-              <FormControl>
-                <Input placeholder="es. Milano, Autostrada A1 km 123..." {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {/* Riferimento - NEW FIELD */}
+          <FormField
+            control={form.control}
+            name="riferimento"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>RIFERIMENTO *</FormLabel>
+                <FormControl>
+                  <Input placeholder="es. 001, 002..." maxLength={3} {...field} />
+                </FormControl>
+                <FormDescription className="text-[10px]">
+                  Numero progressivo a 3 cifre.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Location - NEW REQUIRED FIELD */}
+          <FormField
+            control={form.control}
+            name="location"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Luogo evento *</FormLabel>
+                <FormControl>
+                  <Input placeholder="es. Milano, Autostrada A1 km 123..." {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {/* Document Number - RENAMED FIELD */}

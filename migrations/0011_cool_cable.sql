@@ -1,0 +1,2 @@
+CREATE INDEX IF NOT EXISTS "claims_riferimento_idx" ON "claims" USING btree ("riferimento");--> statement-breakpoint
+ALTER TABLE "claims" ADD CONSTRAINT "claims_org_riferimento_unique" UNIQUE("org_id","riferimento");

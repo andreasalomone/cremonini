@@ -16,6 +16,7 @@ export type ClaimViewModel = {
   formattedCreatedAt: string;
   formattedEventDate: string;
   location: string;
+  riferimento: string;
   documentNumber: string;
   carrierName: string;
   thirdPartyName: string | null;
@@ -98,6 +99,7 @@ export const toClaimViewModel = (claim: Serialized<Claim>): ClaimViewModel => {
     formattedCreatedAt: formatDate(claim.createdAt),
     formattedEventDate: formatDate(claim.eventDate),
     location: claim.location || '-',
+    riferimento: claim.riferimento || '-',
     documentNumber: claim.documentNumber || '-',
     carrierName: claim.carrierName || '-',
     thirdPartyName: claim.hasThirdPartyResponsible ? (claim.thirdPartyName || '-') : null,

@@ -1,7 +1,11 @@
 'use client';
 
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '@radix-ui/react-dialog';
+import { Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+import { Button } from '@/components/ui/button';
+import { DialogFooter, DialogHeader } from '@/components/ui/dialog';
 import {
   Table,
   TableBody,
@@ -11,6 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { LABELS } from '@/constants/Labels';
+import { deleteClaim } from '@/features/claims/actions/claims.actions';
 import type { PoaStatus } from '@/features/procura/actions/procura.actions';
 import { PoaStatusBadge } from '@/features/procura/components/PoaStatusBadge';
 import { GLOBAL_CREMONINI_ID } from '@/features/procura/constants';
@@ -27,6 +32,7 @@ type ClaimsTableProps = {
   poaStatusMap?: Map<string, PoaStatus>;
   showPoaColumn?: boolean;
   readOnly?: boolean;
+  isSuperAdmin?: boolean;
 };
 
 const ID_DISPLAY_LENGTH = 8;
@@ -38,6 +44,7 @@ export const ClaimsTable = ({
   poaStatusMap,
   showPoaColumn = false,
   readOnly = false,
+  isSuperAdmin = false,
 }: ClaimsTableProps) => {
   const router = useRouter();
 
@@ -57,6 +64,7 @@ export const ClaimsTable = ({
               <TableHead>Prescrizione</TableHead>
               {showPoaColumn && <TableHead>{LABELS.PROCURA.ORGANIZATION}</TableHead>}
               <TableHead>{LABELS.CLAIMS.STATUS}</TableHead>
+              {isSuperAdmin && <TableHead className="w-[50px] text-right">Azioni</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -135,6 +143,41 @@ export const ClaimsTable = ({
                         <TableCell onClick={e => e.stopPropagation()}>
                           <ClaimStatusSelect claimId={claim.id} currentStatus={claim.status} readOnly={readOnly} />
                         </TableCell>
+                        {isSuperAdmin && (
+                          <TableCell className="text-right" onClick={e => e.stopPropagation()}>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                  aria-label="Elimina sinistro"
+                                >
+                                  <Trash2 className="size-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Sei sicuro?</DialogTitle>
+                                  <DialogDescription>
+                                    Questa azione è irreversibile. Il sinistro e tutti i documenti associati verranno eliminati permanentemente.
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <DialogFooter className="gap-2 sm:gap-0">
+                                  <DialogClose asChild>
+                                    <Button variant="outline">Annulla</Button>
+                                  </DialogClose>
+                                  <Button
+                                    variant="destructive"
+                                    onClick={() => deleteClaim(claim.id)}
+                                  >
+                                    Elimina
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          </TableCell>
+                        )}
                       </TableRow>
                     );
                   })

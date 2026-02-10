@@ -88,6 +88,7 @@ describe('toClaimViewModel', () => {
     state: 'NATIONAL',
     eventDate: '2023-01-15T00:00:00.000Z',
     location: 'Milano',
+    riferimento: '001',
     documentNumber: 'DDT-001',
     carrierName: 'Carrier SPA',
     hasThirdPartyResponsible: true,
@@ -125,6 +126,7 @@ describe('toClaimViewModel', () => {
       expect(vm.id).toBe('claim-123-long-id');
       expect(vm.shortId).toBe('claim-12');
       expect(vm.status).toBe('OPEN');
+      expect(vm.riferimento).toBe('001');
       expect(vm.location).toBe('Milano');
       expect(vm.description).toBe('Test description');
       expect(vm.orgId).toBe('org-1');
@@ -219,6 +221,7 @@ describe('toClaimViewModel', () => {
       const sparseClaim = {
         ...baseClaim,
         location: null,
+        riferimento: null,
         documentNumber: null,
         carrierName: null,
         hasThirdPartyResponsible: false,
@@ -230,6 +233,7 @@ describe('toClaimViewModel', () => {
       const vm = toClaimViewModel(sparseClaim);
 
       expect(vm.location).toBe('-');
+      expect(vm.riferimento).toBe('-');
       expect(vm.documentNumber).toBe('-');
       expect(vm.carrierName).toBe('-');
       expect(vm.thirdPartyName).toBeNull();

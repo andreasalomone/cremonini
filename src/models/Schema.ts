@@ -10,6 +10,7 @@ import {
   serial,
   text,
   timestamp,
+  unique,
 } from 'drizzle-orm/pg-core';
 
 // This file defines the structure of your database tables using the Drizzle ORM.
@@ -94,6 +95,7 @@ export const claimsSchema = pgTable('claims', {
   // Core fields
   eventDate: date('event_date').notNull(),
   location: text('location'), // Luogo evento
+  riferimento: text('riferimento'), // Numero riferimento (001, 002, ...)
   documentNumber: text('document_number'), // Renamed from ddtCmrNumber
   carrierName: text('carrier_name'),
   hasThirdPartyResponsible: boolean('has_third_party').default(false), // Presenza terzi responsabili
@@ -140,6 +142,8 @@ export const claimsSchema = pgTable('claims', {
   orgIdIdx: index('claims_org_id_idx').on(table.orgId),
   statusIdx: index('claims_status_idx').on(table.status),
   createdAtIdx: index('claims_created_at_idx').on(table.createdAt),
+  riferimentoIdx: index('claims_riferimento_idx').on(table.riferimento),
+  orgRiferimentoUnique: unique('claims_org_riferimento_unique').on(table.orgId, table.riferimento),
 }));
 
 // Type inference exports
@@ -164,7 +168,9 @@ export const documentsSchema = pgTable('documents', {
   id: text('id')
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  claimId: text('claim_id').notNull(),
+  claimId: text('claim_id')
+    .references(() => claimsSchema.id, { onDelete: 'cascade' })
+    .notNull(),
   type: documentTypeEnum('type').notNull(),
   url: text('url').notNull(), // Legacy (kept for backwards compat)
   path: text('path'), // Supabase Storage path
