@@ -1,39 +1,33 @@
-import { buttonVariants } from '@/components/ui/buttonVariants';
+import { Button } from '@/components/ui/button';
 import { CenteredHero } from '@/features/landing/CenteredHero';
 import { Section } from '@/features/landing/Section';
 
 export const Hero = () => {
   return (
-    <Section className="py-20 lg:py-32">
+    <Section variant="textured" className="py-24 lg:py-36">
       <CenteredHero
         banner={null}
         title={(
           <>
             S&A x
             {' '}
-            <span className="text-primary">Gruppo Cremonini</span>
-            {' '}
+            <span className="italic text-primary">Gruppo Cremonini</span>
+            <br />
             Claims Platform
           </>
         )}
-        description="Gestione sinistri in franchigia aggregata e recuperi per Gruppo Cremonini."
-        buttons={(
-          <div className="flex flex-col items-center justify-center gap-x-4 gap-y-3 sm:flex-row">
-            <a
-              className={buttonVariants({ size: 'lg' })}
-              href="/sign-in"
-            >
-              Accedi
-            </a>
+        description="Gestione professionale dei sinistri in franchigia aggregata e recuperi globali per il Gruppo Cremonini."
+        buttons={
+          <>
+            <Button size="lg" asChild className="rounded-full px-8 shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+              <a href="/sign-in">Accedi ora</a>
+            </Button>
 
-            <a
-              className={buttonVariants({ variant: 'outline', size: 'lg' })}
-              href="/sign-up"
-            >
-              Registrati
-            </a>
-          </div>
-        )}
+            <Button variant="outline" size="lg" asChild className="rounded-full border-slate-200 bg-white/50 px-8 backdrop-blur-sm transition-all hover:bg-slate-50 hover:scale-105 active:scale-95">
+              <a href="/sign-up">Registrati</a>
+            </Button>
+          </>
+        }
       />
     </Section>
   );

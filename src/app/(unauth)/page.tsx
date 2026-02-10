@@ -9,7 +9,7 @@ export const metadata = {
 
 const IndexPage = () => {
   return (
-    <div className="flex min-h-screen flex-col bg-white">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
       <Navbar />
       <main className="flex flex-1 flex-col items-center justify-center">
         <Hero />

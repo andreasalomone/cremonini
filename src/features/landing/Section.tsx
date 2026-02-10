@@ -6,28 +6,42 @@ export const Section = (props: {
   subtitle?: string;
   description?: string;
   className?: string;
+  variant?: 'default' | 'primary' | 'textured';
 }) => (
-  <div className={cn('px-3 py-16', props.className)}>
-    {(props.title || props.subtitle || props.description) && (
-      <div className="mx-auto mb-12 max-w-screen-md text-center">
-        {props.subtitle && (
-          <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-sm font-bold text-transparent">
-            {props.subtitle}
-          </div>
-        )}
-
-        {props.title && (
-          <div className="mt-1 text-3xl font-bold">{props.title}</div>
-        )}
-
-        {props.description && (
-          <div className="mt-2 text-lg text-muted-foreground">
-            {props.description}
-          </div>
-        )}
-      </div>
+  <div className={cn(
+    'relative overflow-hidden px-3 py-16',
+    props.variant === 'textured' && 'bg-background bg-mesh',
+    props.className,
+  )}
+  >
+    {props.variant === 'textured' && (
+      <div className="noise absolute inset-0 z-0 opacity-[0.02]" />
     )}
 
-    <div className="mx-auto max-w-screen-lg">{props.children}</div>
+    <div className="relative z-10 mx-auto max-w-screen-lg">
+      {(props.title || props.subtitle || props.description) && (
+        <div className="mx-auto mb-12 max-w-screen-md text-center">
+          {props.subtitle && (
+            <div className="mb-2 text-sm font-bold uppercase tracking-widest text-accent">
+              {props.subtitle}
+            </div>
+          )}
+
+          {props.title && (
+            <h2 className="mt-1 text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl">
+              {props.title}
+            </h2>
+          )}
+
+          {props.description && (
+            <p className="mt-4 text-lg text-muted-foreground">
+              {props.description}
+            </p>
+          )}
+        </div>
+      )}
+
+      {props.children}
+    </div>
   </div>
 );
