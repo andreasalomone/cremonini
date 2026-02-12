@@ -13,23 +13,16 @@ export const Navbar = () => {
       <CenteredMenu
         logo={<Logo />}
         rightMenu={(
-          <>
-            <li className="ml-1 mr-4" data-fade>
-              <Link href="/sign-in" className="text-sm font-medium transition-colors hover:text-primary">
-                Accedi
-              </Link>
-            </li>
-            <li>
-              <Link className={cn(buttonVariants({ size: 'sm' }), 'px-5')} href="/sign-up">
-                Inizia ora
-              </Link>
-            </li>
-          </>
+          <li>
+            <Link className={cn(buttonVariants({ size: 'sm' }), 'px-5')} href="/sign-in">
+              Accedi
+            </Link>
+          </li>
         )}
       >
         <li>
           <Link href="/" className="text-sm font-medium transition-colors hover:text-primary">
-            Gruppo Cremonini
+            Salomone & Associati - Gruppo Cremonini
           </Link>
         </li>
       </CenteredMenu>

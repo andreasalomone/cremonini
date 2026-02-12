@@ -15,7 +15,7 @@ export const Footer = () => {
         legalLinks={null}
       >
         <li>
-          <Link href="/">Gruppo Cremonini</Link>
+          <Link href="/">Salomone & Associati - Gruppo Cremonini</Link>
         </li>
       </CenteredFooter>
     </Section>
