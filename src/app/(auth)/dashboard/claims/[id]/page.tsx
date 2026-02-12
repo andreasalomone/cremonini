@@ -29,10 +29,6 @@ type PageProps = {
 // Main Page Component
 // ----------------------------------------------------------------------
 
-// ----------------------------------------------------------------------
-// Main Page Component
-// ----------------------------------------------------------------------
-
 export default async function ClaimDetailPage({ params }: PageProps) {
   const [resolvedParams, session] = await Promise.all([
     params,

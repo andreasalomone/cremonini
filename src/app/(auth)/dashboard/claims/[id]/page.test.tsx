@@ -56,6 +56,9 @@ vi.mock('@/features/claims/components/ClaimTimeline', () => ({
 vi.mock('@/features/claims/components/DocumentUploadDialog', () => ({
   DocumentUploadDialog: () => <div data-testid="mock-upload-dialog" />,
 }));
+vi.mock('@/features/claims/components/DeleteClaimButton', () => ({
+  DeleteClaimButton: () => <div data-testid="mock-delete-button" />,
+}));
 
 // ----------------------------------------------------------------------
 // 2. Test Suite

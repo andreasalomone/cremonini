@@ -1,7 +1,9 @@
 'use client';
 
-import { Trash2 } from 'lucide-react';
+import { Loader2, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useTransition } from 'react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -22,12 +24,18 @@ type DeleteClaimButtonProps = {
 
 export const DeleteClaimButton = ({ claimId }: DeleteClaimButtonProps) => {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
-  const handleDelete = async () => {
-    const result = await deleteClaim(claimId);
-    if (result.success) {
-      router.push('/dashboard/claims');
-    }
+  const handleDelete = () => {
+    startTransition(async () => {
+      const result = await deleteClaim(claimId);
+      if (result.success) {
+        toast.success('Sinistro eliminato');
+        router.push('/dashboard/claims');
+      } else {
+        toast.error(result.error || 'Errore durante l\'eliminazione');
+      }
+    });
   };
 
   return (
@@ -56,7 +64,9 @@ export const DeleteClaimButton = ({ claimId }: DeleteClaimButtonProps) => {
           <Button
             variant="destructive"
             onClick={handleDelete}
+            disabled={isPending}
           >
+            {isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
             Elimina
           </Button>
         </DialogFooter>
