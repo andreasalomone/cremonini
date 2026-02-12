@@ -28,7 +28,7 @@ export default async function ClaimsPage() {
         <NewClaimDialog />
       </div>
 
-      <ClaimsTable claims={claims} readOnly={!isSuperAdmin} />
+      <ClaimsTable claims={claims} isSuperAdmin={isSuperAdmin} />
     </div>
   );
 }

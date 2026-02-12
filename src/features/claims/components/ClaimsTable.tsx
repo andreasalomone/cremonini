@@ -31,7 +31,6 @@ type ClaimsTableProps = {
   claims: Serialized<Claim>[];
   poaStatusMap?: Map<string, PoaStatus>;
   showPoaColumn?: boolean;
-  readOnly?: boolean;
   isSuperAdmin?: boolean;
 };
 
@@ -43,7 +42,6 @@ export const ClaimsTable = ({
   claims,
   poaStatusMap,
   showPoaColumn = false,
-  readOnly = false,
   isSuperAdmin = false,
 }: ClaimsTableProps) => {
   const router = useRouter();
@@ -64,7 +62,7 @@ export const ClaimsTable = ({
               <TableHead>Prescrizione</TableHead>
               {showPoaColumn && <TableHead>{LABELS.PROCURA.ORGANIZATION}</TableHead>}
               <TableHead>{LABELS.CLAIMS.STATUS}</TableHead>
-              {isSuperAdmin && <TableHead className="w-[50px] text-right">Azioni</TableHead>}
+              <TableHead className="w-[50px] text-right">Azioni</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -141,43 +139,41 @@ export const ClaimsTable = ({
                           </TableCell>
                         )}
                         <TableCell onClick={e => e.stopPropagation()}>
-                          <ClaimStatusSelect claimId={claim.id} currentStatus={claim.status} readOnly={readOnly} />
+                          <ClaimStatusSelect claimId={claim.id} currentStatus={claim.status} readOnly={!isSuperAdmin} />
                         </TableCell>
-                        {isSuperAdmin && (
-                          <TableCell className="text-right" onClick={e => e.stopPropagation()}>
-                            <Dialog>
-                              <DialogTrigger asChild>
+                        <TableCell className="text-right" onClick={e => e.stopPropagation()}>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                aria-label="Elimina sinistro"
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Sei sicuro?</DialogTitle>
+                                <DialogDescription>
+                                  Questa azione è irreversibile. Il sinistro e tutti i documenti associati verranno eliminati permanentemente.
+                                </DialogDescription>
+                              </DialogHeader>
+                              <DialogFooter className="gap-2 sm:gap-0">
+                                <DialogClose asChild>
+                                  <Button variant="outline">Annulla</Button>
+                                </DialogClose>
                                 <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                  aria-label="Elimina sinistro"
+                                  variant="destructive"
+                                  onClick={() => deleteClaim(claim.id)}
                                 >
-                                  <Trash2 className="size-4" />
+                                  Elimina
                                 </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Sei sicuro?</DialogTitle>
-                                  <DialogDescription>
-                                    Questa azione è irreversibile. Il sinistro e tutti i documenti associati verranno eliminati permanentemente.
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <DialogFooter className="gap-2 sm:gap-0">
-                                  <DialogClose asChild>
-                                    <Button variant="outline">Annulla</Button>
-                                  </DialogClose>
-                                  <Button
-                                    variant="destructive"
-                                    onClick={() => deleteClaim(claim.id)}
-                                  >
-                                    Elimina
-                                  </Button>
-                                </DialogFooter>
-                              </DialogContent>
-                            </Dialog>
-                          </TableCell>
-                        )}
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                        </TableCell>
                       </TableRow>
                     );
                   })

@@ -528,16 +528,11 @@ export async function deleteClaim(claimId: string) {
   try {
     const { orgId, userId } = await auth();
 
-    if (!userId) {
+    if (!userId || !orgId) {
       return { success: false, error: 'Unauthorized' };
     }
 
     const isSuperAdmin = checkIsSuperAdmin(orgId);
-
-    if (!isSuperAdmin) {
-      logger.warn(`[ClaimsAction] Unauthorized deletion attempted by user ${userId} on claim ${claimId}`);
-      return { success: false, error: 'Solo gli amministratori possono eliminare i sinistri' };
-    }
 
     // 1. Fetch claim with documents to know what to delete from Storage
     const claim = await db.query.claimsSchema.findFirst({
@@ -547,6 +542,12 @@ export async function deleteClaim(claimId: string) {
 
     if (!claim) {
       return { success: false, error: 'Sinistro non trovato' };
+    }
+
+    // 🔒 ACCESS CONTROL: SuperAdmin can delete any claim; org members can only delete their own org's claims
+    if (!isSuperAdmin && claim.orgId !== orgId) {
+      logger.warn(`[ClaimsAction] Unauthorized deletion attempted by user ${userId} (org ${orgId}) on claim ${claimId} (org ${claim.orgId})`);
+      return { success: false, error: 'Non autorizzato a eliminare questo sinistro' };
     }
 
     // 2. Execute deletion in transaction
