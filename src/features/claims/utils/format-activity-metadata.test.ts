@@ -144,17 +144,17 @@ describe('formatActivityMetadata', () => {
   describe('ECONOMICS_UPDATE', () => {
     it('formats economics fields with currency', () => {
       const result = formatActivityMetadata('ECONOMICS_UPDATE', {
-        estimatedValue: '5000.00',
+        estimatedValue: '5000', // Plain integer 5000 (or "5.000" or "5000,00")
         claimedAmount: '3500',
       });
 
-      expect(result).toHaveLength(2);
-      expect(result![0]!.label).toBe('Danno stimato');
-      expect(result![0]!.value).toContain('5000'); // Locale might skip thousands separator
-      expect(result![0]!.value).toContain(',00');
+      // Expect NO decimals (strict integer display)
+      // 5000 -> 5.000 €
+      expect(result![0]!.value).not.toContain(',');
+      expect(result![0]!.value.replace(/\./g, '')).toContain('5000');
 
       expect(result![1]!.label).toBe('Importo reclamato');
-      expect(result![1]!.value).toContain('3500');
+      expect(result![1]!.value.replace(/\./g, '')).toContain('3500');
     });
 
     it('skips null/empty economics fields', () => {
@@ -174,6 +174,52 @@ describe('formatActivityMetadata', () => {
         estimatedValue: null,
         verifiedDamage: '',
       })).toBeNull();
+    });
+
+    describe('Italian Parsing Regression', () => {
+      // Bugfix: 1.000.000 should be 1 million, not 1
+      it('parses 1.000.000 (dots only) as 1M', () => {
+        const result = formatActivityMetadata('ECONOMICS_UPDATE', {
+          estimatedValue: '1.000.000',
+        });
+        const val = result![0]!.value;
+        // 1.000.000 -> 1M. Display: 1.000.000 €.
+        // Digits strictly: 1000000
+        const digits = val.replace(/\D/g, '');
+
+        expect(digits).toBe('1000000');
+      });
+
+      it('parses 1.000.000,00 (mixed) as 1M', () => {
+        const result = formatActivityMetadata('ECONOMICS_UPDATE', {
+          // In strict integer mode, comma is stripped, so 1.000.000,00 -> 100000000 (100M)
+          // BUT wait, if the user inputs "1.000.000,00" (maybe from legacy data?),
+          // our new `sanitizeCurrency` strips non-digits.
+          // 1.000.000,00 -> 100000000.
+          // IF the DB has legacy data with decimals, we might have an issue.
+          // User said: "0 records found with corrupted values... The data in the DB is safe and correct (1000)."
+          // So we assume inputs are clean or new strict inputs.
+          // If we test "1.000.000,00", effectively the 00 becomes part of the integer.
+          // User said "Numbers are always big, so no user will ever type cents".
+          estimatedValue: '1.000.000,00',
+        });
+        const val = result![0]!.value;
+        const digits = val.replace(/\D/g, '');
+
+        // 100000000 because ,00 are digits.
+        expect(digits).toBe('100000000');
+      });
+
+      it('parses 1,50 (comma only) as 150', () => {
+        const result = formatActivityMetadata('ECONOMICS_UPDATE', {
+          estimatedValue: '1,50',
+        });
+        const val = result![0]!.value;
+        const digits = val.replace(/\D/g, '');
+
+        // 1,50 -> 150
+        expect(digits).toBe('150');
+      });
     });
   });
 

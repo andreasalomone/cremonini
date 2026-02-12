@@ -13,6 +13,6 @@ export const ECONOMICS = {
   CURRENCY_FORMAT: {
     style: 'currency',
     currency: 'EUR',
-    minimumFractionDigits: 2,
+    maximumFractionDigits: 0,
   },
 } as const;

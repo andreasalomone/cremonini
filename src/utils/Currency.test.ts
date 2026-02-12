@@ -17,74 +17,51 @@ describe('sanitizeCurrency', () => {
     });
   });
 
-  describe('European format (comma as decimal separator)', () => {
-    it('converts simple European format: 1234,56 -> 1234.56', () => {
-      expect(sanitizeCurrency('1234,56')).toBe('1234.56');
+  describe('Strict Integer Mode', () => {
+    it('removes dots (thousands separators): 1.234 -> 1234', () => {
+      expect(sanitizeCurrency('1.234')).toBe('1234');
     });
 
-    it('converts European format with thousands: 1.234,56 -> 1234.56', () => {
-      expect(sanitizeCurrency('1.234,56')).toBe('1234.56');
+    it('removes commas (treated as separators/ignored): 1,234 -> 1234', () => {
+      expect(sanitizeCurrency('1,234')).toBe('1234');
     });
 
-    it('converts large European numbers: 1.234.567,89 -> 1234567.89', () => {
-      expect(sanitizeCurrency('1.234.567,89')).toBe('1234567.89');
+    it('handles mixed separators: 1.234,56 -> 123456', () => {
+      // "No user will ever type cents", so 56 is part of the big number or just noise.
+      // Current rule: strict strip => 123456.
+      expect(sanitizeCurrency('1.234,56')).toBe('123456');
     });
 
-    it('handles European format without decimals: 1.234 (thousands) -> ambiguous, treated as decimal', () => {
-      // When only dot is present, it's treated as decimal separator
-      expect(sanitizeCurrency('1.234')).toBe('1.234');
-    });
-  });
-
-  describe('US format (dot as decimal separator)', () => {
-    it('keeps simple US format: 1234.56 -> 1234.56', () => {
-      expect(sanitizeCurrency('1234.56')).toBe('1234.56');
+    it('handles large numbers: 1.000.000 -> 1000000', () => {
+      expect(sanitizeCurrency('1.000.000')).toBe('1000000');
     });
 
-    it('converts US format with thousands: 1,234.56 -> 1234.56', () => {
-      expect(sanitizeCurrency('1,234.56')).toBe('1234.56');
-    });
-
-    it('converts large US numbers: 1,234,567.89 -> 1234567.89', () => {
-      expect(sanitizeCurrency('1,234,567.89')).toBe('1234567.89');
-    });
-  });
-
-  describe('plain numbers (no separators)', () => {
-    it('keeps integers unchanged: 1234 -> 1234', () => {
-      expect(sanitizeCurrency('1234')).toBe('1234');
-    });
-
-    it('keeps simple decimals unchanged: 0.5 -> 0.5', () => {
-      expect(sanitizeCurrency('0.5')).toBe('0.5');
+    it('handles plain integers: 1000 -> 1000', () => {
+      expect(sanitizeCurrency('1000')).toBe('1000');
     });
   });
 
   describe('currency symbols and special characters', () => {
-    it('removes euro symbol: €1.234,56 -> 1234.56', () => {
-      expect(sanitizeCurrency('€1.234,56')).toBe('1234.56');
+    it('removes euro symbol: €1.000 -> 1000', () => {
+      expect(sanitizeCurrency('€1.000')).toBe('1000');
     });
 
-    it('removes dollar symbol: $1,234.56 -> 1234.56', () => {
-      expect(sanitizeCurrency('$1,234.56')).toBe('1234.56');
+    it('removes dollar symbol: $1,000 -> 1000', () => {
+      expect(sanitizeCurrency('$1,000')).toBe('1000');
     });
 
-    it('removes spaces: 1 234,56 -> 1234.56', () => {
-      expect(sanitizeCurrency('1 234,56')).toBe('1234.56');
+    it('removes spaces: 1 000 -> 1000', () => {
+      expect(sanitizeCurrency('1 000')).toBe('1000');
     });
 
-    it('removes letters: EUR 1234,56 -> 1234.56', () => {
-      expect(sanitizeCurrency('EUR 1234,56')).toBe('1234.56');
+    it('removes letters: EUR 1000 -> 1000', () => {
+      expect(sanitizeCurrency('EUR 1000')).toBe('1000');
     });
   });
 
   describe('negative numbers', () => {
-    it('preserves negative sign: -1234,56 -> -1234.56', () => {
-      expect(sanitizeCurrency('-1234,56')).toBe('-1234.56');
-    });
-
-    it('preserves negative with thousands: -1.234,56 -> -1234.56', () => {
-      expect(sanitizeCurrency('-1.234,56')).toBe('-1234.56');
+    it('preserves negative sign: -1.000 -> -1000', () => {
+      expect(sanitizeCurrency('-1.000')).toBe('-1000');
     });
   });
 
@@ -97,27 +74,10 @@ describe('sanitizeCurrency', () => {
       expect(sanitizeCurrency('0')).toBe('0');
     });
 
-    it('handles decimal zero: 0,00 -> 0.00', () => {
-      expect(sanitizeCurrency('0,00')).toBe('0.00');
-    });
-
-    it('handles only decimals: ,56 -> .56', () => {
-      expect(sanitizeCurrency(',56')).toBe('.56');
-    });
-
-    it('handles trailing comma: 1234, -> 1234.', () => {
-      expect(sanitizeCurrency('1234,')).toBe('1234.');
-    });
-  });
-
-  describe('ambiguous formats (detection heuristic)', () => {
-    // When both comma and dot are present, the last separator determines the format
-    it('detects European when comma comes after dot: 1.234,56', () => {
-      expect(sanitizeCurrency('1.234,56')).toBe('1234.56');
-    });
-
-    it('detects US when dot comes after comma: 1,234.56', () => {
-      expect(sanitizeCurrency('1,234.56')).toBe('1234.56');
+    it('handles decimal-like leftovers: 0,50 -> 050', () => {
+      // Strict integer mode just strips non-digits.
+      // 0,50 -> 050.
+      expect(sanitizeCurrency('0,50')).toBe('050');
     });
   });
 });

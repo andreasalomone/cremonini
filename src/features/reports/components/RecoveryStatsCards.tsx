@@ -24,11 +24,11 @@ export const RecoveryStatsCards = ({ data }: { data: RecoveryStatsData }) => {
         <CardContent>
           <div className="text-2xl font-bold">
             €
-            {totalRecovered.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+            {totalRecovered.toLocaleString('it-IT', { maximumFractionDigits: 0 })}
           </div>
           <p className="text-xs text-muted-foreground">
             Su un valore stimato di €
-            {totalEstimated.toLocaleString('it-IT', { minimumFractionDigits: 0 })}
+            {totalEstimated.toLocaleString('it-IT', { maximumFractionDigits: 0 })}
           </p>
         </CardContent>
       </Card>

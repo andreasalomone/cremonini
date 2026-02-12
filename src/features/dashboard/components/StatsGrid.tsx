@@ -50,19 +50,19 @@ export const StatsGrid = ({
     },
     {
       title: 'Valore Totale',
-      value: `€${totalValue.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`,
+      value: `€${totalValue.toLocaleString('it-IT', { maximumFractionDigits: 0 })}`,
       icon: TrendingUp,
       description: 'Stima economica sinistri aperti',
     },
     {
       title: 'Totale Recuperato',
-      value: `€${totalRecovered.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`,
+      value: `€${totalRecovered.toLocaleString('it-IT', { maximumFractionDigits: 0 })}`,
       icon: Banknote,
       description: 'Importo recuperato ad oggi',
     },
     {
       title: 'Residuo Franchigia',
-      value: `€${aggregateDeductibleResidual.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`,
+      value: `€${aggregateDeductibleResidual.toLocaleString('it-IT', { maximumFractionDigits: 0 })}`,
       icon: ShieldAlert,
       description: 'Franchigia aggregata rimanente',
       critical: isDeductibleLow,

@@ -33,8 +33,7 @@ const formatCurrency = (val?: string | number | null): string => {
     return '';
   }
   return Number(val).toLocaleString('it-IT', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 0,
   });
 };
 
@@ -93,7 +92,7 @@ export const EconomicFields = ({
                 <FormItem>
                   <FormLabel>Danno stimato (€)</FormLabel>
                   <FormControl>
-                    <Input placeholder="1.000,00" {...field} disabled={readOnly} />
+                    <Input placeholder="100.000" {...field} disabled={readOnly} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -148,7 +147,7 @@ export const EconomicFields = ({
                 <FormItem>
                   <FormLabel>Stima recupero (€)</FormLabel>
                   <FormControl>
-                    <Input placeholder="500,00" {...field} disabled={readOnly} />
+                    <Input placeholder="50.000" {...field} disabled={readOnly} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

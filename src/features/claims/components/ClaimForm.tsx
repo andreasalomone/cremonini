@@ -575,7 +575,7 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
               <FormItem>
                 <FormLabel>Valore stimato del danno (€)</FormLabel>
                 <FormControl>
-                  <Input placeholder="1.000,00" {...field} />
+                  <Input placeholder="100.000" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -590,7 +590,7 @@ export const ClaimForm = ({ onSuccess }: { onSuccess?: () => void }) => {
               <FormItem>
                 <FormLabel>Stima recupero (€)</FormLabel>
                 <FormControl>
-                  <Input placeholder="500,00" {...field} />
+                  <Input placeholder="50.000" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

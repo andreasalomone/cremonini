@@ -1,5 +1,6 @@
 import { CLAIM_STATUS_OPTIONS } from '@/features/claims/constants';
 import { DOCUMENT_TYPE_OPTIONS } from '@/features/documents/constants';
+import { sanitizeCurrency } from '@/utils/Currency';
 
 // --- Types ---
 
@@ -38,7 +39,20 @@ function resolveDocTypeLabel(type: string): string {
 }
 
 function formatCurrency(value: string | number): string {
-  const num = typeof value === 'string' ? Number.parseFloat(value) : value;
+  let num: number;
+
+  if (typeof value === 'string') {
+    const sanitized = sanitizeCurrency(value);
+
+    if (!sanitized) {
+      num = Number.parseFloat(value);
+    } else {
+      num = Number.parseFloat(sanitized);
+    }
+  } else {
+    num = value;
+  }
+
   if (Number.isNaN(num)) {
     return String(value);
   }
@@ -46,6 +60,7 @@ function formatCurrency(value: string | number): string {
   return num.toLocaleString('it-IT', {
     style: 'currency',
     currency: 'EUR',
+    maximumFractionDigits: 0,
   });
 }
 
